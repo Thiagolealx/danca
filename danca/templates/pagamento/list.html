@@ -4,10 +4,6 @@
 {% load humanize %}
 {% load custom_filters %}
 
-{% block head_extra %}
-<!-- Se quiser depois adicionar Select2, pode incluir aqui -->
-{% endblock %}
-
 {% block content %}
 <h2 class="pb-2">Pagamentos</h2>
 
@@ -32,7 +28,7 @@
   <div class="row g-3 align-items-center">
     <div class="col-auto">
       <label for="tipo_modelo" class="form-label">Tipo de Modelo</label>
-      <select id="tipo_modelo" name="tipo_modelo" class="form-select">
+      <select id="tipo_modelo" name="tipo_modelo" class="form-select" onchange="this.form.submit()">
         <option value="">Todos</option>
         <option value="planejamento" {% if request.GET.tipo_modelo == 'planejamento' %}selected{% endif %}>Planejamento</option>
         <option value="inscricao" {% if request.GET.tipo_modelo == 'inscricao' %}selected{% endif %}>Inscrição</option>
@@ -42,12 +38,26 @@
     <div class="col-auto">
       <label for="pagamento_relacionado" class="form-label">Pagamento Relacionado</label>
       <select id="pagamento_relacionado" name="pagamento_relacionado" class="form-select">
-        <option value="">Selecione o Tipo de Modelo primeiro</option>
+        <option value="">Todos</option>
+        {% if request.GET.tipo_modelo == 'planejamento' %}
+          {% for planejamento in planejamentos %}
+            <option value="{{ planejamento.id }}" {% if request.GET.pagamento_relacionado == planejamento.id|stringformat:"s" %}selected{% endif %}>
+              {{ planejamento.descricao }}
+            </option>
+          {% endfor %}
+        {% elif request.GET.tipo_modelo == 'inscricao' %}
+          {% for inscricao in inscricoes %}
+            <option value="{{ inscricao.id }}" {% if request.GET.pagamento_relacionado == inscricao.id|stringformat:"s" %}selected{% endif %}>
+              {{ inscricao.nome }}
+            </option>
+          {% endfor %}
+        {% endif %}
       </select>
     </div>
 
     <div class="col-auto align-self-end">
       <button type="submit" class="btn btn-primary">Filtrar</button>
+      <a href="{% url 'list_pagamentos' %}" class="btn btn-outline-secondary">Limpar</a>
     </div>
   </div>
 </form>
@@ -128,42 +138,12 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function() {
-  function carregarPagamentoRelacionado(tipo, selecionado) {
-    if (!tipo) {
-      $("#pagamento_relacionado").html('<option value="">Selecione o Tipo de Modelo primeiro</option>').prop('disabled', true);
-      return;
-    }
-    $.ajax({
-      url: "{% url 'carregar_objetos_pagamento' %}",
-      data: {'tipo_modelo': tipo},
-      success: function(data) {
-        let options = '<option value="">Todos</option>';
-        data.objetos.forEach(function(obj) {
-          const selected = (obj.id == selecionado) ? 'selected' : '';
-          options += `<option value="${obj.id}" ${selected}>${obj.descricao}</option>`;
-        });
-        $("#pagamento_relacionado").html(options).prop('disabled', false);
-      }
-    });
-  }
-
-  const tipoSelecionado = $("#tipo_modelo").val();
-  const pagamentoSelecionado = "{{ request.GET.pagamento_relacionado|default:'' }}";
-  carregarPagamentoRelacionado(tipoSelecionado, pagamentoSelecionado);
-
-  $("#tipo_modelo").on('change', function() {
-    carregarPagamentoRelacionado($(this).val(), '');
-  });
-
-  // Ação do botão excluir
-  $(document).on('click', '.btn-delete', function () {
-    const pagamentoId = $(this).data('id');
-    const urlBase = "{% url 'delete_pagamento' 0 %}".replace('/0/', '/' + pagamentoId + '/');
-    $('#delete-form').attr('action', urlBase);
-  });
+// Ação do botão excluir
+$(document).on('click', '.btn-delete', function () {
+  const pagamentoId = $(this).data('id');
+  const urlBase = "{% url 'delete_pagamento' 0 %}".replace('/0/', '/' + pagamentoId + '/');
+  $('#delete-form').attr('action', urlBase);
 });
 </script>
 {% endblock %}

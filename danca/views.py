@@ -1211,22 +1211,31 @@ def pagamentos_list(request):
 
 
 def listar_pagamentos(request):
+    # Obtenha todos os pagamentos inicialmente
     pagamentos = Pagamento.objects.all()
-
+    
+    # Filtros
     tipo_modelo = request.GET.get('tipo_modelo')
     pagamento_relacionado = request.GET.get('pagamento_relacionado')
-
+    
     if tipo_modelo:
         pagamentos = pagamentos.filter(tipo_modelo=tipo_modelo)
-
+        
     if pagamento_relacionado:
-        pagamentos = pagamentos.filter(pagamento_relacionado__id=pagamento_relacionado)
-
+        pagamentos = pagamentos.filter(pagamento_relacionado_id=pagamento_relacionado)
+    
+    # Obtenha todos os objetos relacionados para os dropdowns
+    planejamentos = Planejamento.objects.all()
+    inscricoes = Inscricao.objects.all()
+    
+    # Paginação
     paginator = Paginator(pagamentos, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-
+    
     return render(request, 'pagamentos/lista.html', {
         'page_obj': page_obj,
+        'planejamentos': planejamentos,
+        'inscricoes': inscricoes,
     })
 
