@@ -45,14 +45,7 @@ urlpatterns = [
     path('planejamentos/create/', PlanejamentoFormView.as_view(), name='create_planejamento'),
     path('planejamentos/<int:planejamento_id>/update/', PlanejamentoFormView.as_view(), name='update_planejamento'),
     path('planejamentos/<int:planejamento_id>/delete/', PlanejamentoDeleteView.as_view(), name='delete_planejamento'),
-
-    # Artista
-    path('artistas/', ArtistaListView.as_view(), name='list_artistas'),
-    path('artistas/<int:artista_id>/', ArtistaDetailView.as_view(), name='detail_artista'),
-    path('artistas/create/', ArtistaFormView.as_view(), name='create_artista'),
-    path('artistas/<int:artista_id>/update/', ArtistaFormView.as_view(), name='update_artista'),
-    path('artistas/<int:artista_id>/delete/', ArtistaDeleteView.as_view(), name='delete_artista'),
-
+    
     # Inscricao
     path('inscricoes/', InscricaoListView.as_view(), name='list_inscricoes'),
     path('inscricoes/<int:inscricao_id>/', InscricaoDetailView.as_view(), name='detail_inscricao'),
@@ -61,4 +54,43 @@ urlpatterns = [
     path('inscricoes/<int:inscricao_id>/delete/', InscricaoDeleteView.as_view(), name='delete_inscricao'),
     path('inscricoes/<int:inscricao_id>/eventos/create/', InscricaoEventoFormView.as_view(), name='create_inscricao_evento'),
     path('inscricoes/<int:inscricao_id>/eventos/<int:inscricao_evento_id>/delete/', InscricaoEventoDeleteView.as_view(), name='delete_inscricao_evento'),
+
+    # Profissional
+    path('profissionais/', ProfissionalListView.as_view(), name='list_profissionais'),
+    path('profissionais/<int:profissional_id>/', ProfissionalDetailView.as_view(), name='detail_profissional'),
+    path('profissionais/create/', ProfissionalFormView.as_view(), name='create_profissional'),
+    path('profissionais/<int:profissional_id>/update/', ProfissionalFormView.as_view(), name='update_profissional'),
+    path('profissionais/<int:profissional_id>/delete/', ProfissionalDeleteView.as_view(), name='delete_profissional'),
+    path('profissionais/<int:profissional_id>/eventos/create/', ProfissionalEventoFormView.as_view(), name='create_profissional_evento'),
+    path('profissionais/<int:profissional_id>/eventos/<int:profissional_evento_id>/delete/', ProfissionalEventoDeleteView.as_view(), name='delete_profissional_evento'),
+
+    # Entrada
+    path('entrada/', EntradaListView.as_view(), name='list_entradas'),
+    path('entrada/<int:entrada_id>/', EntradaDetailView.as_view(), name='detail_entrada'),
+    path('entrada/create/', EntradaFormView.as_view(), name='create_entrada'),
+    path('entrada/<int:entrada_id>/update/', EntradaFormView.as_view(), name='update_entrada'),
+    path('entrada/<int:entrada_id>/delete/', EntradaDeleteView.as_view(), name='delete_entrada'),
+    
+    # Saida
+    path('saida/', SaidaListView.as_view(), name='list_saidas'),
+    path('saida/<int:saida_id>/', SaidaDetailView.as_view(), name='detail_saida'),
+    path('saida/create/', SaidaFormView.as_view(), name='create_saida'),
+    path('saida/<int:saida_id>/update/', SaidaFormView.as_view(), name='update_saida'),
+    path('saida/<int:saida_id>/delete/', SaidaDeleteView.as_view(), name='delete_saida'),
+
+    # Resumo Caixa
+    path('resumo/', resumo_caixa, name='resumo_caixa'),
+
+    # Pagamento
+    path('pagamento/', PagamentoListView.as_view(), name='list_pagamentos'),
+    path('pagamento/<int:pagamento_id>/', PagamentoDetailView.as_view(), name='detail_pagamento'),
+    path('pagamento/create/', PagamentoFormView.as_view(), name='create_pagamento'),
+    path('pagamento/<int:pagamento_id>/update/', PagamentoFormView.as_view(), name='update_pagamento'),
+    path('pagamento/<int:pagamento_id>/delete/', PagamentoDeleteView.as_view(), name='delete_pagamento'),
+    # path('pagamentos/relacionados/', carregar_objetos_pagamento, name='carregar_objetos_pagamento'),  # AJAX
+    path('carregar_objetos_pagamento/', carregar_objetos_pagamento, name='carregar_objetos_pagamento'),
 ]
+
+    
+
+

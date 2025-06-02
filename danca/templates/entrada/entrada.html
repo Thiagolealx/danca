@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="pb-2">Detalhes da Entrada</h2>
+
+<div class="row">
+  <div class="col-6 mb-3">
+    <label class="me-3">Descrição:</label><br />
+    {{ entrada.descricao }}
+  </div>
+  <div class="col-6 mb-3">
+    <label class="me-3">Valor:</label><br />
+    R$ {{ entrada.valor|floatformat:2 }}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-6 mb-3">
+    <label class="me-3">Data:</label><br />
+    {{ entrada.data|date:"d/m/Y" }}
+  </div>
+</div>
+
+<a href="{% url 'update_entrada' entrada.id %}" class="btn btn-warning  float-end"><i class="bi bi-pencil-square"></i> Editar</a>
+<a href="{% url 'list_entradas' %}" class="btn btn-secondary"><i class="bi bi-box-arrow-in-left"></i> Voltar</a>
+{% endblock %}

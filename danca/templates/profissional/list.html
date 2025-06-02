@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<h2 class="pb-2">Artistas</h2>
+<h2 class="pb-2">Profissionais</h2>
 
 {% if messages %}
 <div class="container">
@@ -29,20 +29,26 @@
       <tr>
         <th>Nome</th>    
         <th>Função</th>
-        <th>Cache</th>
+        <th>Cachê</th>
+        <th>Local de Partida</th>
+        <th>Local de Volta</th>
         <th>Eventos</th>
+        <th>CPF</th>
         <th class="text-center">Ações</th>
       </tr>
     </thead>
     <tbody>
-      {% for artista in page_obj %}
+      {% for profissional in page_obj %}
       <tr>
-        <td class="align-middle">{{ artista.nome }}</td>
-        <td class="align-middle">{{ artista.funcao }}</td>
-        <td class="align-middle">R$ {{ artista.cache|floatformat:2|intcomma }}</td>
+        <td class="align-middle">{{ profissional.nome }}</td>
+        <td class="align-middle">{{ profissional.cpf}}</td>
+        <td class="align-middle">{{ profissional.funcao }}</td>
+        <td class="align-middle">R$ {{ profissional.calcular_cache|floatformat:2|intcomma }}</td>
+        <td class="align-middle">{{ profissional.local_partida }}</td>
+        <td class="align-middle">{{ profissional.local_volta }}</td>
         <td class="align-middle">
           <div class="list-group list-group-flush">
-            {% for evento in artista.eventos.all %}
+            {% for evento in profissional.eventos.all %}
             <div class="list-group-item">
               {{ evento.descricao }}{% if evento.quantidade_pessoas is not None %} ({{ evento.quantidade_pessoas }} vagas){% endif %}
             </div>
@@ -50,16 +56,16 @@
           </div>
         </td>
         <td class="col-3 text-center botoes">
-          <a href="{% url 'detail_artista' artista.id %}" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
-          <a href="{% url 'update_artista' artista.id %}" class="btn btn-warning"><i class="bi bi-pencil-square"></i></a>
-          <button type="button" class="btn btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ artista.id }}">
+          <a href="{% url 'detail_profissional' profissional.id %}" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
+          <a href="{% url 'update_profissional' profissional.id %}" class="btn btn-warning"><i class="bi bi-pencil-square"></i></a>
+          <button type="button" class="btn btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ profissional.id }}">
             <i class="bi bi-trash3-fill"></i>
           </button>
         </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="5">Nenhum artista encontrado.</td>
+        <td colspan="7">Nenhum profissional encontrado.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -71,11 +77,11 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h1 class="modal-title fs-5" id="staticBackdropLabel">Remover Artista</h1>
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">Remover Profissional</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body text-start">
-        <p>Tem certeza que deseja remover o artista?</p>
+        <p>Tem certeza que deseja remover o profissional?</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -94,8 +100,8 @@
 <script>
    $(document).ready(function () {
     $(".btn-delete").on("click", function () {
-        let artistaId = $(this).data("id");
-        let deleteUrl = `{% url 'delete_artista' artista_id=0 %}`.replace('0', artistaId);
+        let profissionalId = $(this).data("id");
+        let deleteUrl = `{% url 'delete_profissional' profissional_id=0 %}`.replace('0', profissionalId);
         $("#delete-form").attr("action", deleteUrl);
     });
   });

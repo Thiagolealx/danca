@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block head_extra %}{% endblock %}
+
+{% block content %}
+<h2 class="pb-2">Pagamentos</h2>
+
+<!-- MENSAGENS -->
+{% if messages %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- FILTRO -->
+<div class="row bg-light pt-2 border rounded">
+  <div class="col-9">
+    <form method="get" action="{{ search_url }}" class="mb-3">
+      <label for="search" class="form-label">Filtro por Pagamento Relacionado</label>
+      <div class="input-group">
+        <input type="text" name="q" id="search" placeholder="Filtrar pagamento relacionado" class="form-control"
+          value="{{ pagamento_relacionado }}" required />
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-funnel"></i><span class="esconder-sm"> Filtrar</span>
+        </button>
+        <a href="{{ search_url }}" class="btn btn-secondary">
+          <i class="bi bi-trash3-fill"></i><span class="esconder-sm"> Limpar</span>
+        </a>
+      </div>
+    </form>
+  </div>
+  <div class="col-3 mb-3 align-self-end">
+    <a href="{{ create_url }}" class="btn btn-primary float-end">
+      <i class="bi bi-plus"></i> Novo<span class="esconder-sm"> Registro</span>
+    </a>
+  </div>
+</div>
+
+
+<!-- TABELA -->
+<table class="table table-striped table-hover">
+  <thead>
+    <tr>
+      <th>Tipo de Modelo</th>
+      <th>Pagamento Relacionado</th>
+      <th>Valor Pago</th>
+      <th>Parcela</th>
+      <th>Data do Pagamento</th>
+      <th class="text-center">Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for pagamento in page_obj %}
+    <tr>
+      <td class="align-middle">{{ pagamento.get_tipo_modelo_display }}</td>
+      <td class="align-middle">
+        {% if pagamento.tipo_modelo == 'planejamento' %}
+          {{ pagamento.pagamento_relacionado.descricao }}
+        {% elif pagamento.tipo_modelo == 'inscricao' %}
+          {{ pagamento.pagamento_relacionado.nome }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td class="align-middle">R$ {{ pagamento.valor_pago|floatformat:2 }}</td>
+      <td class="align-middle">{{ pagamento.numero_parcela }}</td>
+      <td class="align-middle">{{ pagamento.data_pagamento|date:"d/m/Y" }}</td>
+      <td class="col-3 text-center botoes">
+        <a href="{% url 'detail_pagamento' pagamento.id %}" class="btn btn-info">
+          <i class="bi bi-eye-fill text-white"></i>
+        </a>
+        <a href="{% url 'update_pagamento' pagamento.id %}" class="btn btn-warning">
+          <i class="bi bi-pencil-square text-dark"></i>
+        </a>
+        <button type="button" class="btn btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ pagamento.id }}">
+          <i class="bi bi-trash3-fill text-white"></i>
+        </button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Nenhum pagamento encontrado.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% include "partials/_pagination.html" %}
+
+<!-- MODAL DE EXCLUSÃO -->
+<div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5">Remover Pagamento</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">Tem certeza que deseja remover o pagamento?</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post" id="delete-form" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VOLTAR -->
+<div class="mt-4">
+  <a href="{% url 'index' %}" class="btn btn-secondary"><i class="bi bi-box-arrow-in-left"></i> Voltar</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Select2 para busca digitável
+    $('.select2').select2({
+      placeholder: "Selecione",
+      allowClear: true,
+      width: '100%'
+    });
+
+    // Modal de exclusão
+    document.querySelectorAll(".btn-delete").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const pagamentoId = this.dataset.id;
+        const urlBase = "{% url 'delete_pagamento' 0 %}".replace("/0/", "/" + pagamentoId + "/");
+        document.getElementById("delete-form").action = urlBase;
+      });
+    });
+  });
+</script>
+{% endblock %}
+
+

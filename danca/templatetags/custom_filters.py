@@ -18,3 +18,11 @@ def get_evento(value):
         return Evento.objects.get(id=value)
     except Evento.DoesNotExist:
         return None
+
+@register.filter
+def sum_attribute(queryset, attribute):
+    """
+    Soma os valores de um atributo em um queryset ou lista de objetos.
+    Ignora valores None.
+    """
+    return sum(getattr(obj, attribute, 0) or 0 for obj in queryset)

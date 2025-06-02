@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
+{% load humanize %}
 
 {% block content %}
-<h2 class="pb-2">Planejamentos</h2>
+
+<h2 class="pb-2">Entradas</h2>
 
 {% if messages %}
 <div class="container">
@@ -19,11 +21,11 @@
 </div>
 {% endif %}
 
-{% include "partials/_filters.html" with search_url=request.path create_url=create_url %}
+{% include "partials/_filters.html" with search_url=request.path create_url="create" %}
 
 <div class="d-flex justify-content-end mb-3">
-  <small class="text-danger">
-    Total Planejado: R$ {{ total_planejado|format_currency }}
+  <small class="text-success">
+    Total: R$ {{ total_entrada|format_currency }}
   </small>
 </div>
 
@@ -31,38 +33,29 @@
   <thead>
     <tr>
       <th>Descrição</th>    
-      <th>Valor Planejado</th>
-      <th>Valor Restante</th>
-      <th>Status</th>
+      <th>Valor</th>
+      <th>Data</th>
       <th class="text-center">Ações</th>
     </tr>
   </thead>
   <tbody>
-    {% for planejamento in page_obj %}
+    {% for entrada in page_obj %}
     <tr>
-      <td class="align-middle">{{ planejamento.descricao }}</td>
-      <td class="align-middle">R$ {{ planejamento.valor_planejado|floatformat:2 }}</td>
-      <td class="align-middle">R$ {{ planejamento.valor_restante|floatformat:2 }}</td>
-      <td class="align-middle">
-        {% if planejamento.status == "Pago" %}
-          <span class="badge bg-success">{{ planejamento.status }}</span>
-        {% elif planejamento.status == "Parcial" %}
-          <span class="badge bg-warning">{{ planejamento.status }}</span>
-        {% else %}
-          <span class="badge bg-danger">{{ planejamento.status }}</span>
-        {% endif %}
-      </td>
+      <td class="align-middle">{{ entrada.descricao }}</td>
+      <td class="align-middle">R$ {{ entrada.valor|floatformat:2 }}</td>
+      <td class="align-middle">{{ entrada.data|date:"d/m/Y" }}</td>
       <td class="col-3 text-center botoes">
-        <a href="{% url 'detail_planejamento' planejamento.id %}" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
-        <a href="{% url 'update_planejamento' planejamento.id %}" class="btn btn-warning"><i class="bi bi-pencil-square"></i></a>
-        <button type="button" class="btn btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ planejamento.id }}">
+        <a href="{% url 'detail_entrada' entrada.id %}" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
+        <a href="{% url 'update_entrada' entrada.id %}" class="btn btn-warning"><i class="bi bi-pencil-square"></i></a>
+        <!-- Botão que aciona o modal -->
+        <button type="button" class="btn btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ entrada.id }}">
           <i class="bi bi-trash3-fill"></i>
         </button>
       </td>
     </tr>
     {% empty %}
     <tr>
-      <td colspan="3">Nenhum planejamento encontrado.</td>
+      <td colspan="4">Nenhuma entrada encontrada.</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -73,11 +66,11 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h1 class="modal-title fs-5" id="staticBackdropLabel">Remover Planejamento</h1>
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">Remover Entrada</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body text-start">
-        <p>Tem certeza que deseja remover o planejamento?</p>
+        <p>Tem certeza que deseja remover esta entrada?</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -90,16 +83,17 @@
   </div>
 </div>
 {% include "partials/_pagination.html" %}
-{% endblock %}
 
 {% block extra_js %}
 <script>
    $(document).ready(function () {
     $(".btn-delete").on("click", function () {
-        let planejamentoId = $(this).data("id");
-        let deleteUrl = `{% url 'delete_planejamento' planejamento_id=0 %}`.replace('0', planejamentoId);
+        let entradaId = $(this).data("id");
+        let deleteUrl = `{% url 'delete_entrada' entrada_id=0 %}`.replace('0', entradaId);
         $("#delete-form").attr("action", deleteUrl);
     });
   });
 </script>
+{% endblock %}
+
 {% endblock %}

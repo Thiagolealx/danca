@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<h2 class="pb-2">{{ titulo }}</h2>
+
+<!--- Mensagens de erro -->
+{% if form.errors %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      {% for error in form.non_field_errors %}
+        <div class="alert alert-error alert-dismissible fade show" role="alert">
+          {{ error }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+      {% for field in form %}
+        {% for error in field.errors %}
+        <div class="alert alert-error alert-dismissible fade show" role="alert">
+          {{ error }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" id="entradaForm">
+  {% csrf_token %}
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="me-3" for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+      {{ form.descricao }}
+    </div>
+    
+    <div class="col-md-3 mb-3">
+      <label class="me-3" for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+      {{ form.valor }}
+    </div>
+    
+    <div class="col-md-3 mb-3">
+      <label class="me-3" for="{{ form.data.id_for_label }}">{{ form.data.label }}</label>
+      {{ form.data }}
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-success me-2 float-end"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-floppy" viewBox="0 0 16 16">
+    <path d="M11 2H9v3h2z"/>
+    <path d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/>
+  </svg> &nbsp; Salvar</button>
+  <a href="{% url 'list_entradas' %}" class="btn btn-secondary"><i class="bi bi-arrow-90deg-left"></i> Voltar</a>
+</form>
+
+<!-- Adicionando o JavaScript -->
+<script src="{% static 'js/jquery.min.js' %}"></script>
+<script src="{% static 'js/jquery.mask.min.js' %}"></script>
+<script src="{% static 'js/mascaras.js' %}"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const form = document.querySelector("#entradaForm");
+      if (form) {
+          form.addEventListener("submit", function () {
+              const valorInput = document.querySelector(".mask-valor");
+              if (valorInput) {
+                  // Remove "R$", "." e substitui "," por "." antes de enviar
+                  valorInput.value = valorInput.value.replace("R$", "").replace(/\./g, "").replace(",", ".").trim();
+              }
+          });
+      }
+  });
+</script>
+
+{% endblock %}

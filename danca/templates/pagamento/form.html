@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<h2 class="pb-2">{{ titulo }}</h2>
+
+<form method="post" id="pagamentoForm">
+  {% csrf_token %}
+
+  <div class="row">
+    <!-- Tipo de Pagamento -->
+    <div class="col-md-6 mb-3">
+      <label for="{{ form.tipo_modelo.id_for_label }}">{{ form.tipo_modelo.label }}</label>
+      {{ form.tipo_modelo }}
+    </div>
+
+    <!-- Pagamento Relacionado -->
+    <div class="col-md-6 mb-3" id="pagamento_relacionado_field" style="display: none;">
+      <label for="id_pagamento_relacionado_id">Pagamento Relacionado</label>
+      {{ form.pagamento_relacionado_id }}
+    </div>
+
+    <!-- Valor do Pagamento -->
+    <div class="col-md-6 mb-3">
+      <label for="{{ form.valor_pago.id_for_label }}">{{ form.valor_pago.label }}</label>
+      {{ form.valor_pago }}
+    </div>
+
+    <!-- Número da Parcela  -->    
+    <div class="col-md-6 mb-3">
+      <label for="{{ form.numero_parcela.id_for_label }}">{{ form.numero_parcela.label }}</label>
+      {{ form.numero_parcela  }}
+    </div>
+
+  
+  </div>
+
+  <button type="submit" class="btn btn-success">Salvar</button>
+  <a href="{% url 'list_pagamentos' %}" class="btn btn-secondary">Voltar</a>
+</form>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tipoPagamento = document.getElementById('id_tipo_modelo');
+    const pagamentoRelacionadoField = document.getElementById('pagamento_relacionado_field');
+    const pagamentoRelacionado = document.getElementById('id_pagamento_relacionado_id');
+
+    tipoPagamento.addEventListener('change', function () {
+        pagamentoRelacionadoField.style.display = 'none';
+        pagamentoRelacionado.innerHTML = '<option value="">Selecione um pagamento relacionado</option>';
+
+        if (this.value) {
+            fetch(`/danca/carregar_objetos_pagamento/?tipo_modelo=${this.value}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.objetos.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.descricao;
+                        pagamentoRelacionado.appendChild(option);
+                    });
+                    pagamentoRelacionadoField.style.display = 'block';
+                })
+                .catch(error => console.error('Erro ao carregar objetos:', error));
+        }
+    });
+  });
+</script>
+{% endblock %}

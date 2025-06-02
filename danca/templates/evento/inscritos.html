@@ -3,31 +3,57 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Lista de Inscritos - {{ evento.descricao }}</h2>
-    <p>Total de inscritos: {{ total_inscritos }}</p>
-    
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>CPF</th>
-                    <th>Categoria</th>
-                    <th>Valor Total</th>
-                    <th>Nº Parcelas</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inscrito in inscritos %}
-                <tr>
-                    <td>{{ inscrito.nome }}</td>
-                    <td>{{ inscrito.cpf }}</td>
-                    <td>{{ inscrito.categoria }}</td>
-                    <td>R$ {{ inscrito.valor_total|floatformat:2 }}</td>
-                    <td>{{ inscrito.numero_parcelas }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+
+    <!-- Seção de Inscritos -->
+    <h4 class="mt-4">Inscritos</h4>
+    <p><strong>Total de inscritos:</strong> {{ total_inscritos }}</p>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inscrito in inscritos %}
+            <tr>
+                <td>{{ inscrito.nome }}</td>
+                <td>{{ inscrito.cpf }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Nenhum inscrito encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Seção de Profissionais -->
+    <h4 class="mt-4">Profissionais</h4>
+    <p><strong>Total de profissionais:</strong> {{ total_profissionais }}</p>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for profissional in profissionais %}
+            <tr>
+                <td>{{ profissional.nome }}</td>
+                <td>{{ profissional.cpf }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Nenhum profissional encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{% url 'list_eventos' %}" class="btn btn-secondary mt-3">
+        <i class="bi bi-arrow-left"></i> Voltar para Eventos
+    </a>
 </div>
 {% endblock %}

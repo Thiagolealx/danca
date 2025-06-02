@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<h2 class="pb-2">{{ titulo }}</h2>
+
+<!--- Mensagens de erro -->
+{% if form.errors %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      {% for error in form.non_field_errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          {{ error }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" id="profissionalForm">
+  {% csrf_token %}
+
+  <!-- Aba 1: Informações do Profissional -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">1. Informações do Profissional</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}
+            {% for error in form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {{ error }}
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
+          {{ form.cpf }}
+          {% if form.cpf.errors %}
+            {% for error in form.cpf.errors %}
+            <div class="text-danger small mt-1">
+              {{ error }}
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.valor_hora_aula.id_for_label }}">{{ form.valor_hora_aula.label }}</label>
+          {{ form.valor_hora_aula }}
+          {% if form.valor_hora_aula.errors %}
+            {% for error in form.valor_hora_aula.errors %}
+            <div class="text-danger small mt-1">
+              {{ error }}
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.qt_aulas.id_for_label }}">{{ form.qt_aulas.label }}</label>
+          {{ form.qt_aulas }}
+          {% if form.qt_aulas.errors %}
+            {% for error in form.qt_aulas.errors %}
+            <div class="text-danger small mt-1">
+              {{ error }}
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.funcao.id_for_label }}">{{ form.funcao.label }}</label>
+          {{ form.funcao }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.local_partida.id_for_label }}">{{ form.local_partida.label }}</label>
+          {{ form.local_partida }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="me-3" for="{{ form.local_volta.id_for_label }}">{{ form.local_volta.label }}</label>
+          {{ form.local_volta }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aba 2: Eventos -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">2. Eventos</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <label class="me-3">Eventos</label>
+          <select class="form-select" id="eventoSelect">
+            <option value="">Selecione um evento</option>
+            {% for evento in eventos %}
+              <option value="{{ evento.id }}"
+                data-descricao="{{ evento.descricao }}"
+                data-valor="{{ evento.valor_unitario }}"
+                {% if profissional and evento in profissional.eventos.all %}selected{% endif %}>
+                {{ evento.descricao }} - R$ {{ evento.valor_unitario|floatformat:2 }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <button type="button" class="btn btn-primary" id="addEventoBtn">
+            <i class="bi bi-plus-circle"></i> Adicionar Evento
+          </button>
+        </div>
+
+        <div class="col-md-12">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="eventosTable">
+              {% if profissional %}
+                {% for evento in profissional.eventos.all %}
+                <tr data-evento-id="{{ evento.id }}">
+                  <td>{{ evento.descricao }}</td>
+                  <td>R$ {{ evento.valor_unitario|floatformat:2 }}</td>
+                  <td>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeEvento({{ evento.id }})">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Container para os inputs hidden dos eventos -->
+        <div id="eventosInputsContainer"></div>
+
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <button type="submit" class="btn btn-success me-2 float-end">
+              <i class="bi bi-floppy"></i> &nbsp; Salvar
+            </button>
+            <a href="{% url 'list_profissionais' %}" class="btn btn-secondary">
+              <i class="bi bi-arrow-90deg-left"></i> Voltar
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("#profissionalForm");
+    if (form) {
+        form.addEventListener("submit", function (e) {
+            const valorHoraAula = document.getElementById("{{ form.valor_hora_aula.id_for_label }}").value;
+            const qtAulas = document.getElementById("{{ form.qt_aulas.id_for_label }}").value;
+            const cache = valorHoraAula * qtAulas;
+            if (cache < 0) {
+                e.preventDefault();
+                alert("O valor do cachê não pode ser negativo");
+                return false;
+            }
+        });
+    }
+
+    const eventoSelect = document.getElementById('eventoSelect');
+    const addEventoBtn = document.getElementById('addEventoBtn');
+    const eventosTable = document.getElementById('eventosTable');
+
+    const eventosSelecionados = new Set([
+        {% if profissional %}
+          {% for evento in profissional.eventos.all %}
+            "{{ evento.id }}",
+          {% endfor %}
+        {% endif %}
+    ]);
+
+    addEventoBtn.addEventListener('click', function () {
+        const eventoId = eventoSelect.value;
+        const option = eventoSelect.options[eventoSelect.selectedIndex];
+        const descricao = option.getAttribute('data-descricao');
+        const valor = parseFloat(option.getAttribute('data-valor')).toFixed(2).replace('.', ',');
+
+        if (!eventoId) {
+            alert('Por favor, selecione um evento');
+            return;
+        }
+
+        if (eventosSelecionados.has(eventoId)) {
+            alert('Este evento já foi adicionado');
+            return;
+        }
+
+        // Adiciona o evento à tabela
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-evento-id', eventoId);
+        newRow.innerHTML = `
+            <td>${descricao}</td>
+            <td>R$ ${valor}</td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeEvento(${eventoId})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        eventosTable.appendChild(newRow);
+
+        // Adiciona o evento ao conjunto de selecionados
+        eventosSelecionados.add(eventoId);
+
+        // Atualiza o campo oculto com os IDs dos eventos
+        atualizarEventosInput();
+
+        // Limpa a seleção
+        eventoSelect.value = '';
+    });
+
+    window.removeEvento = function (eventoId) {
+        const row = eventosTable.querySelector(`tr[data-evento-id="${eventoId}"]`);
+        if (row) {
+            row.remove();
+        }
+
+        // Remove o evento do conjunto de selecionados
+        eventosSelecionados.delete(eventoId);
+
+        // Atualiza o campo oculto com os IDs dos eventos
+        atualizarEventosInput();
+    };
+
+    function atualizarEventosInput() {
+        const container = document.getElementById("eventosInputsContainer");
+        container.innerHTML = ""; // Limpa os inputs antigos
+
+        Array.from(eventosSelecionados).forEach(eventoId => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "eventos";  // mesmo nome do campo no form!
+            input.value = eventoId;
+            container.appendChild(input);
+        });
+    }
+});
+</script>
+{% endblock %}

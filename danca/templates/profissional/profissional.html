@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Detalhes do Profissional</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Informações Pessoais</h4>
+                            <div class="mb-3">
+                                <label class="text-muted">Nome:</label>
+                                <p>{{ profissional.nome_profissional }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Função:</label>
+                                <p>{{ profissional.funcao_profissional }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Valor da Hora Aula:</label>
+                                <p>R$ {{ profissional.valor_hora_aula|floatformat:2|intcomma }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Quantidade de Aulas:</label>
+                                <p>{{ profissional.qt_aulas }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Valor Total do Cachê:</label>
+                                <p>R$ {{ profissional.calcular_cache|floatformat:2|intcomma }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Localização</h4>
+                            <div class="mb-3">
+                                <label class="text-muted">Local de Partida:</label>
+                                <p>{{ profissional.local_partida_profissional }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Local de Volta:</label>
+                                <p>{{ profissional.local_volta_profissional }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h4>Eventos Associados</h4>
+                            {% if profissional.eventos.all %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Evento</th>
+                                            <th>Valor</th>
+                                            <th>Vagas</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for evento in profissional.eventos.all %}
+                                        <tr>
+                                            <td>{{ evento.descricao }}</td>
+                                            <td>R$ {{ evento.valor_unitario|floatformat:2|intcomma }}</td>
+                                            <td>
+                                                {% if evento.quantidade_pessoas is not None %}
+                                                {{ evento.quantidade_pessoas }}
+                                                {% else %}
+                                                Ilimitado
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'detail_evento' evento.id %}" class="btn btn-sm btn-info">
+                                                    <i class="bi bi-eye-fill"></i> Ver Evento
+                                                </a>
+                                                <a href="{% url 'remove_evento_profissional' profissional.id evento.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja remover este evento?')">
+                                                    <i class="bi bi-trash"></i> Remover
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">Este profissional não está associado a nenhum evento.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'update_profissional' profissional.id %}" class="btn btn-primary me-2">
+                    <i class="bi bi-pencil-square"></i> Editar
+                </a>
+                <a href="{% url 'list_profissionais' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-90deg-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

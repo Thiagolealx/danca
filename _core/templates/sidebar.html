@@ -1,134 +1,140 @@
 <!-- Barra Lateral -->
 <div class="sidebar text-white" id="sidebar">
-  <div class="d-flex flex-column flex-shrink-0 p-2 h-100">
-      <ul class="nav nav-pills flex-column mb-auto">
-          <!-- Cadastros -->
-          <li class="nav-item mb-2">
-            <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#cadastros-collapse">
-                <i class="bi bi-file-earmark-person"></i>
-                <span style="margin-left: 10px;">Cadastros</span>
-                <i class="bi bi-chevron-down ms-2"></i>
-            </button>
-            <div class="collapse" id="cadastros-collapse">
-                <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'list_lotes' %}">
-                            <i class="bi bi-box"></i>
-                            <span style="margin-left: 10px;">Lote</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'list_categorias' %}">
-                            <i class="bi bi-tags"></i>
-                            <span style="margin-left: 10px;">Categoria</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'list_tipo_eventos' %}">
-                            <i class="bi bi-calendar-event"></i>
-                            <span style="margin-left: 10px;">Tipo de Evento</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'list_camisas' %}">
-                            <i class="bi bi-shirt"></i>
-                            <span style="margin-left: 10px;">Camisas</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-          </li>
-
-          <!-- Inscrição -->
-          <li class="nav-item mb-2">
-            <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#inscricao-collapse">
-                <i class="bi bi-person-plus"></i>
-                <span style="margin-left: 10px;">Inscrição</span>
-                <i class="bi bi-chevron-down ms-2"></i>
-            </button>
-            <div class="collapse" id="inscricao-collapse">
-                <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'list_artistas' %}">
-                            <i class="bi bi-mic"></i>
-                            <span style="margin-left: 10px;">Artistas</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'list_inscricoes' %}">
-                            <i class="bi bi-people"></i>
-                            <span style="margin-left: 10px;">Inscrições</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-          </li>
-
-          <!-- Planejamentos -->
-          <li class="nav-item mb-2">
-            <a class="nav-link" href="{% url 'list_planejamentos' %}">
-                <i class="bi bi-calendar-check"></i>
-                <span style="margin-left: 10px;">Planejamentos</span>
-            </a>
-          </li>
-
-          <!-- Evento -->
-          <li class="nav-item mb-2">
-            <a class="nav-link" href="{% url 'list_eventos' %}">
-                <i class="bi bi-calendar-event"></i>
-                <span style="margin-left: 10px;">Eventos</span>
-            </a>
-          </li>
-
-          <!-- Caixa -->
-          <li class="nav-item mb-2">
-            <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#caixa-collapse">
-                <i class="bi bi-wallet2"></i>
-                <span style="margin-left: 10px;">Caixa</span>
-                <i class="bi bi-chevron-down ms-2"></i>
-            </button>
-            <div class="collapse" id="caixa-collapse">
-                <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-graph-up"></i>
-                            <span style="margin-left: 10px;">Resumo</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-arrow-up-circle"></i>
-                            <span style="margin-left: 10px;">Entrada</span>
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-arrow-down-circle"></i>
-                            <span style="margin-left: 10px;">Saída</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-          </li>
-
-          <!-- Pagamentos -->
-          <li class="nav-item mb-2">
-            <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#pagamentos-collapse">
-                <i class="bi bi-cash-coin"></i>
-                <span style="margin-left: 10px;">Pagamentos</span>
-                <i class="bi bi-chevron-down ms-2"></i>
-            </button>
-            <div class="collapse" id="pagamentos-collapse">
-                <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-receipt"></i>
-                            <span style="margin-left: 10px;">Pagamentos</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-          </li>
-      </ul>
+    <div class="d-flex flex-column flex-shrink-0 p-2 h-100">
+        <ul class="nav nav-pills flex-column mb-auto">
+            <!-- Cadastros -->
+            <li class="nav-item mb-2">
+              <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#cadastros-collapse" aria-expanded="{% if 'cadastros' in request.path %}true{% else %}false{% endif %}">
+                  <i class="bi bi-file-earmark-person"></i>
+                  <span style="margin-left: 10px;">Cadastros</span>
+                  <i class="bi bi-chevron-down ms-2"></i>
+              </button>
+              <div class="collapse {% if 'cadastros' in request.path %}show{% endif %}" id="cadastros-collapse">
+                  <ul class="nav nav-pills flex-column mb-auto">
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_lotes' %}active{% endif %}" href="{% url 'list_lotes' %}">
+                              <i class="bi bi-box"></i>
+                              <span style="margin-left: 10px;">Lote</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_categorias' %}active{% endif %}" href="{% url 'list_categorias' %}">
+                              <i class="bi bi-tags"></i>
+                              <span style="margin-left: 10px;">Categoria</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_tipo_eventos' %}active{% endif %}" href="{% url 'list_tipo_eventos' %}">
+                              <i class="bi bi-calendar-event"></i>
+                              <span style="margin-left: 10px;">Tipo de Evento</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_camisas' %}active{% endif %}" href="{% url 'list_camisas' %}">
+                              <i class="bi bi-shirt"></i>
+                              <span style="margin-left: 10px;">Camisas</span>
+                          </a>
+                      </li>
+                  </ul>
+              </div>
+            </li>
+  
+            <!-- Inscrição -->
+            <li class="nav-item mb-2">
+              <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#inscricao-collapse" aria-expanded="{% if 'inscricao' in request.path %}true{% else %}false{% endif %}">
+                  <i class="bi bi-person-plus"></i>
+                  <span style="margin-left: 10px;">Inscrição</span>
+                  <i class="bi bi-chevron-down ms-2"></i>
+              </button>
+              <div class="collapse {% if 'inscricao' in request.path %}show{% endif %}" id="inscricao-collapse">
+                  <ul class="nav nav-pills flex-column mb-auto">
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_profissionais' %}active{% endif %}" href="{% url 'list_profissionais' %}">
+                              <i class="bi bi-mic"></i>
+                              <span style="margin-left: 10px;">Profissionais</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_inscricoes' %}active{% endif %}" href="{% url 'list_inscricoes' %}">
+                              <i class="bi bi-people"></i>
+                              <span style="margin-left: 10px;">Inscrições</span>
+                          </a>
+                      </li>
+                  </ul>
+              </div>
+            </li>
+  
+            <!-- Planejamentos -->
+            <li class="nav-item mb-2">
+              <a class="nav-link {% if request.resolver_match.url_name == 'list_planejamentos' %}active{% endif %}" href="{% url 'list_planejamentos' %}">
+                  <i class="bi bi-calendar-check"></i>
+                  <span style="margin-left: 10px;">Planejamentos</span>
+              </a>
+            </li>
+  
+            <!-- Evento -->
+            <li class="nav-item mb-2">
+              <a class="nav-link {% if request.resolver_match.url_name == 'list_eventos' %}active{% endif %}" href="{% url 'list_eventos' %}">
+                  <i class="bi bi-calendar-event"></i>
+                  <span style="margin-left: 10px;">Eventos</span>
+              </a>
+            </li>
+  
+            <!-- Caixa -->
+            <li class="nav-item mb-2">
+              <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#caixa-collapse" aria-expanded="{% if 'caixa' in request.path %}true{% else %}false{% endif %}">
+                  <i class="bi bi-wallet2"></i>
+                  <span style="margin-left: 10px;">Caixa</span>
+                  <i class="bi bi-chevron-down ms-2"></i>
+              </button>
+              <div class="collapse {% if 'caixa' in request.path %}show{% endif %}" id="caixa-collapse">
+                  <ul class="nav nav-pills flex-column mb-auto">
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'resumo_caixa' %}active{% endif %}" href="{% url 'resumo_caixa' %}">
+                              <i class="bi bi-graph-up"></i>
+                              <span style="margin-left: 10px;">Resumo</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_entradas' %}active{% endif %}" href="{% url 'list_entradas' %}">
+                              <i class="bi bi-arrow-up-circle"></i>
+                              <span style="margin-left: 10px;">Entrada</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_saidas' %}active{% endif %}" href="{% url 'list_saidas' %}">
+                              <i class="bi bi-arrow-down-circle"></i>
+                              <span style="margin-left: 10px;">Saída</span>
+                          </a>
+                      </li>
+                  </ul>
+              </div>
+            </li>
+  
+            <!-- Pagamentos -->
+            <li class="nav-item mb-2">
+              <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#pagamentos-collapse" aria-expanded="{% if 'pagamentos' in request.path %}true{% else %}false{% endif %}">
+                  <i class="bi bi-cash-coin"></i>
+                  <span style="margin-left: 10px;">Pagamentos</span>
+                  <i class="bi bi-chevron-down ms-2"></i>
+              </button>
+              <div class="collapse {% if 'pagamentos' in request.path %}show{% endif %}" id="pagamentos-collapse">
+                  <ul class="nav nav-pills flex-column mb-auto">
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'list_pagamentos' %}active{% endif %}" href="{% url 'list_pagamentos' %}">
+                              <i class="bi bi-receipt"></i>
+                              <span style="margin-left: 10px;">Lista de Pagamentos</span>
+                          </a>
+                      </li>
+                      <li class="nav-item mb-2">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'create_pagamento' %}active{% endif %}" href="{% url 'create_pagamento' %}">
+                              <i class="bi bi-plus-circle"></i>
+                              <span style="margin-left: 10px;">Novo Pagamento</span>
+                          </a>
+                      </li>
+                  </ul>
+              </div>
+            </li>
+        </ul>
+    </div>
   </div>
-</div>

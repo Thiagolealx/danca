@@ -1,6 +1,13 @@
+from datetime import timedelta
 from django.db import models
 from .constants import STATUS_EVENTO, TAMANHO_CAMISA, TIPO_CAMISA, STATUS_LOTE
 from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.db.models import Sum
+from datetime import date, timedelta
+
+
 
 class Lote(models.Model):
     descricao = models.CharField(max_length=255)
@@ -104,42 +111,30 @@ class Planejamento(models.Model):
         return self.descricao    
     class Meta:
         ordering = ['-id']
+        verbose_name = "Planejamento"
+        verbose_name_plural = "Planejamentos"
+    
+    @property
+    def valor_pago(self):
+        content_type = ContentType.objects.get_for_model(self)
+        total_pago = Pagamento.objects.filter(
+            content_type=content_type,
+            object_id=self.id
+        ).aggregate(total=Sum('valor_pago'))['total'] or 0
+        return total_pago
 
+    @property
+    def valor_restante(self):
+        return (self.valor_planejado or 0) - self.valor_pago
 
-class Artista(models.Model):
-    nome = models.CharField(max_length=100)
-    funcao = models.CharField(max_length=100)
-    cache = models.DecimalField(max_digits=10, decimal_places=2)
-    eventos = models.ManyToManyField(Evento, related_name='artistas', blank=True)
+    @property
+    def status(self):
+        if self.valor_restante <= 0:
+            return "Pago"
+        elif self.valor_pago > 0:
+            return "Parcial"
+        return "Pendente"
 
-    def __str__(self):
-        return self.nome
-
-    class Meta:
-        verbose_name = 'Artista'
-        verbose_name_plural = 'Artistas'
-
-    def save(self, *args, **kwargs):
-        """
-        Sobrescreves o método save para atualizar o contador de inscrições no evento.
-        """
-        for evento in self.eventos.all():
-            if evento.quantidade_pessoas is not None:
-                if evento.quantidade_pessoas <= 0:
-                    raise ValidationError("Não há vagas suficientes para este evento.")
-                evento.quantidade_pessoas -= 1
-                evento.save()
-        super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        """
-        Sobrescreves o método delete para atualizar o contador de inscrições no evento.
-        """
-        for evento in self.eventos.all():
-            if evento.quantidade_pessoas is not None:
-                evento.quantidade_pessoas += 1
-                evento.save()
-        super().delete(*args, **kwargs)
 
 
 class Inscricao(models.Model):
@@ -184,6 +179,7 @@ class Inscricao(models.Model):
         self.valor_total = self.calcular_valor_total()
         self.valor_parcela = self.calcular_valor_parcela()
         super().save(update_fields=['valor_total', 'valor_parcela'])
+    
 
     def __str__(self):
         return f"{self.nome} - {self.categoria.descricao}"
@@ -192,7 +188,40 @@ class Inscricao(models.Model):
         verbose_name = "Inscrição"
         verbose_name_plural = "Inscrições"
         ordering = ['-id']
+    
+    @property
+    def valor_pago(self):
+        content_type = ContentType.objects.get_for_model(self)
+        total_pago = Pagamento.objects.filter(
+            content_type=content_type,
+            object_id=self.id
+        ).aggregate(total=Sum('valor_pago'))['total'] or 0
+        return total_pago
 
+    @property
+    def valor_restante(self):
+        return self.valor_total - self.valor_pago
+    
+    @property
+    def status(self):
+        if self.valor_restante <= 0:
+            return "Pago"
+        elif self.valor_pago > 0:
+            return "Parcial"
+        return "Pendente"
+    
+    @property
+    def proximo_pagamento(self):
+        content_type = ContentType.objects.get_for_model(self)
+        proximo = Pagamento.objects.filter(
+            content_type=content_type,
+            object_id=self.id,
+            data_proximo_pagamento__isnull=False
+        ).order_by('data_proximo_pagamento').first()
+
+        if proximo:
+            return proximo.data_proximo_pagamento  # Retorna como objeto de data
+        return None
 
 class InscricaoEvento(models.Model):
     inscricao = models.ForeignKey(Inscricao, on_delete=models.CASCADE, related_name='inscricao_evento_set')
@@ -224,3 +253,116 @@ class InscricaoEvento(models.Model):
         inscricao.valor_total = inscricao.calcular_valor_total()
         inscricao.valor_parcela = inscricao.calcular_valor_parcela()
         inscricao.save(update_fields=['valor_total', 'valor_parcela'])
+
+
+class Profissional(models.Model):
+    nome = models.CharField(max_length=100)
+    cpf = models.CharField(max_length=14, null=True, blank=True)
+    valor_hora_aula = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    qt_aulas = models.IntegerField(null=True, blank=True)
+    funcao = models.CharField(max_length=100, null=True, blank=True)
+    local_partida = models.CharField(max_length=100, null=True, blank=True)
+    local_volta = models.CharField(max_length=100, null=True, blank=True)
+    eventos = models.ManyToManyField(Evento, through='ProfissionalEvento', related_name='profissionais_eventos')
+
+    def calcular_cache(self):
+        if self.valor_hora_aula is not None and self.qt_aulas is not None:
+            return self.valor_hora_aula * self.qt_aulas
+        return None
+
+    def __str__(self):
+        return f"{self.nome}"
+
+    class Meta:
+        verbose_name = "Profissional"
+        verbose_name_plural = "Profissionais"
+        ordering = ['-id']
+
+
+class ProfissionalEvento(models.Model):
+    profissional = models.ForeignKey(Profissional, on_delete=models.CASCADE, related_name='profissional_evento_set')
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Evento do Profissional"
+        verbose_name_plural = "Eventos dos Profissionais"
+        unique_together = [['profissional', 'evento']]
+
+    def __str__(self):
+        return f"{self.profissional.nome} - {self.evento.descricao}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.evento.atualizar_contador_inscricoes()
+
+    def delete(self, *args, **kwargs):
+        evento = self.evento
+        super().delete(*args, **kwargs)
+        evento.atualizar_contador_inscricoes()
+
+
+class Entrada(models.Model):
+    descricao = models.CharField(max_length=200)
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+    data = models.DateField()   
+   
+    
+    def __str__(self):
+        return f"Entrada - {self.descricao} - R$ {self.valor}"
+    
+    class Meta:
+        verbose_name = "Entrada"
+        verbose_name_plural = "Entradas"
+        ordering = ['-data']
+
+
+class Saida(models.Model):
+    descricao = models.CharField(max_length=200)
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+    data = models.DateField()   
+    
+    def __str__(self):
+        return f"Saída - {self.descricao} - R$ {self.valor}"
+    
+    class Meta:
+        verbose_name = "Saída"
+        verbose_name_plural = "Saídas"
+        ordering = ['-data']
+
+
+class Pagamento(models.Model):
+    TIPOS_MODELO = [
+        ('planejamento', 'Planejamento'),
+        ('inscricao', 'Inscrição'),
+    ]
+    tipo_modelo = models.CharField(max_length=20, choices=TIPOS_MODELO)
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    pagamento_relacionado = GenericForeignKey('content_type', 'object_id')
+
+    valor_pago = models.DecimalField(max_digits=10, decimal_places=2)
+    data_pagamento = models.DateField(auto_now_add=True)
+    data_proximo_pagamento = models.DateField(null=True, blank=True)  
+    numero_parcela =models.IntegerField()
+
+    def save(self, *args, **kwargs):
+        # Garante que data_pagamento não seja None
+        if not self.data_pagamento:
+            self.data_pagamento = date.today()
+
+        # Calcula a data do próximo pagamento apenas para inscrições
+        if self.tipo_modelo == 'inscricao':
+            self.data_proximo_pagamento = self.data_pagamento + timedelta(days=30)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.tipo_modelo} - {self.pagamento_relacionado} - Parcela {self.numero_parcela}"
+
+    
+    class Meta:
+        verbose_name = "Pagamento"
+        verbose_name_plural = "Pagamentos"
+        ordering = ['-data_pagamento']
+        get_latest_by = 'data_pagamento'  # Define o campo para o método latest

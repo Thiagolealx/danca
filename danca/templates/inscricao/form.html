@@ -95,72 +95,70 @@
     </div>
   </div>
 
-<!-- Aba 3: Eventos -->
-<div class="card mb-4">
-  <div class="card-header">
-    <h5 class="mb-0">3. Eventos</h5>
-  </div>
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-12 mb-3">
-        <label class="me-3">Eventos</label>
-        <select class="form-select" id="eventoSelect">
-          <option value="">Selecione um evento</option>
-          {% for evento in eventos %}
-            <option value="{{ evento.id }}"
-              data-descricao="{{ evento.descricao }}"
-              data-valor="{{ evento.valor_unitario }}"
-              {% if inscricao and evento in inscricao.eventos.all %}selected{% endif %}>
-              {{ evento.descricao }} - R$ {{ evento.valor_unitario|floatformat:2 }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
+  <!-- Aba 3: Eventos -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">3. Eventos</h5>
     </div>
-
-    <div class="row">
-      <div class="col-md-12">
-        <button type="button" class="btn btn-primary" id="addEventoBtn">
-          <i class="bi bi-plus-circle"></i> Adicionar Evento
-        </button>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <label class="me-3">Eventos</label>
+          <select class="form-select" id="eventoSelect">
+            <option value="">Selecione um evento</option>
+            {% for evento in eventos %}
+              <option value="{{ evento.id }}"
+                data-descricao="{{ evento.descricao }}"
+                data-valor="{{ evento.valor_unitario }}"
+                {% if inscricao and evento in inscricao.eventos.all %}selected{% endif %}>
+                {{ evento.descricao }} - R$ {{ evento.valor_unitario|floatformat:2 }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
-    </div>
 
-    <div class="row mt-3">
-      <div class="col-md-12">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Evento</th>
-              <th>Valor</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="eventosTable">
-            {% if inscricao %}
-              {% for evento in inscricao.eventos.all %}
-              <tr data-evento-id="{{ evento.id }}">
-                <td>{{ evento.descricao }}</td>
-                <td>R$ {{ evento.valor_unitario|floatformat:2 }}</td>
-                <td>
-                  <button type="button" class="btn btn-danger btn-sm" onclick="removeEvento({{ evento.id }})">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </td>
+      <div class="row">
+        <div class="col-md-12">
+          <button type="button" class="btn btn-primary" id="addEventoBtn">
+            <i class="bi bi-plus-circle"></i> Adicionar Evento
+          </button>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-12">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Valor</th>
+                <th>Ações</th>
               </tr>
-              {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody id="eventosTable">
+              {% if inscricao %}
+                {% for evento in inscricao.eventos.all %}
+                <tr data-evento-id="{{ evento.id }}">
+                  <td>{{ evento.descricao }}</td>
+                  <td>R$ {{ evento.valor_unitario|floatformat:2 }}</td>
+                  <td>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeEvento({{ evento.id }})">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Campo oculto para enviar os IDs dos eventos -->
-<div id="eventosInputsContainer"></div>
-
-
+  <!-- Campo oculto para enviar os IDs dos eventos -->
+  <div id="eventosInputsContainer"></div>
 
   <div class="mt-4">
     <button type="submit" class="btn btn-success me-2 float-end">
@@ -176,97 +174,106 @@
 {% block extra_js %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-      const form = document.querySelector("#inscricaoForm");
-      if (form) {
-          form.addEventListener("submit", function (e) {
-              const numeroParcelas = document.getElementById("{{ form.numero_parcelas.id_for_label }}").value;
-              if (numeroParcelas && !/^[0-9]+$/.test(numeroParcelas)) {
-                  e.preventDefault();
-                  alert("Por favor, informe um número válido para o número de parcelas");
-                  return false;
-              }
+    // Autocomplete CEP
+    const cepInput = document.getElementById("id_cep");
+    const municipioInput = document.getElementById("id_municipio");
+    const ufInput = document.getElementById("id_uf");
+
+    cepInput.addEventListener("blur", function () {
+      const cep = cepInput.value.replace(/\D/g, ""); // Remove caracteres não numéricos
+
+      if (cep.length === 8) {
+        fetch(`https://viacep.com.br/ws/${cep}/json/`)
+          .then(response => response.json())
+          .then(data => {
+            if (!data.erro) {
+              municipioInput.value = data.localidade; // Preenche o município
+              ufInput.value = data.uf; // Preenche o estado (UF)
+            } else {
+              alert("CEP não encontrado.");
+              municipioInput.value = "";
+              ufInput.value = "";
+            }
+          })
+          .catch(error => {
+            console.error("Erro ao buscar o CEP:", error);
+            alert("Erro ao buscar o CEP. Tente novamente.");
           });
+      } else {
+        alert("CEP inválido. Digite um CEP com 8 dígitos.");
+        municipioInput.value = "";
+        ufInput.value = "";
+      }
+    });
+
+    // Manipulação de eventos
+    const eventoSelect = document.getElementById('eventoSelect');
+    const addEventoBtn = document.getElementById('addEventoBtn');
+    const eventosTable = document.getElementById('eventosTable');
+    const eventosSelecionados = new Set();
+
+    addEventoBtn.addEventListener('click', function () {
+      const eventoId = eventoSelect.value;
+      const option = eventoSelect.options[eventoSelect.selectedIndex];
+      const descricao = option.getAttribute('data-descricao');
+      const valor = parseFloat(option.getAttribute('data-valor')).toFixed(2).replace('.', ',');
+
+      if (!eventoId) {
+        alert('Por favor, selecione um evento');
+        return;
       }
 
-      const eventoSelect = document.getElementById('eventoSelect');
-      const addEventoBtn = document.getElementById('addEventoBtn');
-      const eventosTable = document.getElementById('eventosTable');
-      const eventosInput = document.getElementById('eventosInput');
+      if (eventosSelecionados.has(eventoId)) {
+        alert('Este evento já foi adicionado');
+        return;
+      }
 
-      const eventosSelecionados = new Set([
-        {% if inscricao %}
-          {% for evento in inscricao.eventos.all %}
-            "{{ evento.id }}",
-          {% endfor %}
-        {% endif %}
-]);
+      // Adiciona o evento à tabela
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('data-evento-id', eventoId);
+      newRow.innerHTML = `
+        <td>${descricao}</td>
+        <td>R$ ${valor}</td>
+        <td>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeEvento(${eventoId})">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      `;
+      eventosTable.appendChild(newRow);
 
-      addEventoBtn.addEventListener('click', function () {
-          const eventoId = eventoSelect.value;
-          const option = eventoSelect.options[eventoSelect.selectedIndex];
-          const descricao = option.getAttribute('data-descricao');
-          const valor = parseFloat(option.getAttribute('data-valor')).toFixed(2).replace('.', ',');
+      // Adiciona o evento ao conjunto de selecionados
+      eventosSelecionados.add(eventoId);
 
-          if (!eventoId) {
-              alert('Por favor, selecione um evento');
-              return;
-          }
+      // Atualiza o campo oculto com os IDs dos eventos
+      atualizarEventosInput();
+    });
 
-          if (eventosSelecionados.has(eventoId)) {
-              alert('Este evento já foi adicionado');
-              return;
-          }
+    window.removeEvento = function (eventoId) {
+      const row = eventosTable.querySelector(`tr[data-evento-id="${eventoId}"]`);
+      if (row) {
+        row.remove();
+      }
 
-          // Adiciona o evento à tabela
-          const newRow = document.createElement('tr');
-          newRow.setAttribute('data-evento-id', eventoId);
-          newRow.innerHTML = `
-              <td>${descricao}</td>
-              <td>R$ ${valor}</td>
-              <td>
-                  <button type="button" class="btn btn-danger btn-sm" onclick="removeEvento(${eventoId})">
-                      <i class="bi bi-trash"></i>
-                  </button>
-              </td>
-          `;
-          eventosTable.appendChild(newRow);
+      // Remove o evento do conjunto de selecionados
+      eventosSelecionados.delete(eventoId);
 
-          // Adiciona o evento ao conjunto de selecionados
-          eventosSelecionados.add(eventoId);
+      // Atualiza o campo oculto com os IDs dos eventos
+      atualizarEventosInput();
+    };
 
-          // Atualiza o campo oculto com os IDs dos eventos
-          atualizarEventosInput();
+    function atualizarEventosInput() {
+      const container = document.getElementById("eventosInputsContainer");
+      container.innerHTML = ""; // Limpa os inputs antigos
 
-          // Limpa a seleção
-          eventoSelect.value = '';
+      Array.from(eventosSelecionados).forEach(eventoId => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "eventos"; // Mesmo nome para que o Django trate como lista
+        input.value = eventoId;
+        container.appendChild(input);
       });
-
-      window.removeEvento = function (eventoId) {
-          const row = eventosTable.querySelector(`tr[data-evento-id="${eventoId}"]`);
-          if (row) {
-              row.remove();
-          }
-
-          // Remove o evento do conjunto de selecionados
-          eventosSelecionados.delete(eventoId);
-
-          // Atualiza o campo oculto com os IDs dos eventos
-          atualizarEventosInput();
-      };
-
-      function atualizarEventosInput() {
-        const container = document.getElementById("eventosInputsContainer");
-        container.innerHTML = ""; // Limpa os inputs antigos
-    
-        Array.from(eventosSelecionados).forEach(eventoId => {
-            const input = document.createElement("input");
-            input.type = "hidden";
-            input.name = "eventos";  // Mesmo nome para que o Django trate como lista
-            input.value = eventoId;
-            container.appendChild(input);
-        });
     }
-    
   });
 </script>
 {% endblock %}
