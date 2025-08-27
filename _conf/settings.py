@@ -60,7 +60,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "_core",
-    "codata_sso",
+    # "codata_sso",
 
     "django.contrib.admin",
     "django.contrib.auth",
@@ -71,7 +71,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
 
     # Mozilla Django OIDC https://mozilla-django-oidc.readthedocs.io/
-    "mozilla_django_oidc",
+    # "mozilla_django_oidc",
 
     # Debug Toolbar https://django-debug-toolbar.readthedocs.io/
     "debug_toolbar",
@@ -89,6 +89,8 @@ INSTALLED_APPS = [
     # Project apps
     "danca",
 ]
+if not DEBUG:
+    INSTALLED_APPS.insert(1, "codata_sso")  
 
 AUTH_USER_MODEL = "_core.User"
 
@@ -100,7 +102,9 @@ AUTHENTICATION_BACKENDS = [
 if DEBUG:
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.ModelBackend",
+        
     ]
+    
 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -110,7 +114,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "mozilla_django_oidc.middleware.SessionRefresh",
+    # "mozilla_django_oidc.middleware.SessionRefresh",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
