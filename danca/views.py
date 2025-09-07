@@ -400,7 +400,7 @@ class CamisaDeleteView(DeleteView):
 @method_decorator(never_cache, name="dispatch")
 class PedidoCamisaListView(ListView):
     model = PedidoCamisa
-    paginate_by = 10
+    paginate_by = 50
     template_name = "pedidos/list.html"
     ordering = ['-data_pedido']
 
