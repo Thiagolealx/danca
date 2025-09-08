@@ -83,7 +83,7 @@
       <div class="col-md-3">
         <div class="card border-info mb-2">
           <div class="card-header bg-info text-white py-2">
-            <h6 class="mb-0">Camisas</h6>
+            <h6 class="mb-0">Camisas (Recebidas)</h6>
           </div>
           <div class="card-body py-2">
             <p class="fs-6 mb-0">{{ total_camisas_pagas|format_currency }}</p>
@@ -108,18 +108,29 @@
   <fieldset class="border p-2 mb-3 w-100" style="max-width: 800px;">
     <legend class="w-auto px-2 fs-6">Pendências</legend>
     <div class="row">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card border-warning mb-2">
           <div class="card-header bg-warning text-dark py-2">
             <h6 class="mb-0">Total a Receber (Inscrições)</h6>
           </div>
           <div class="card-body py-2">
-            <p class="fs-6 mb-0">{{ total_a_receber|format_currency }}</p>
+            <p class="fs-6 mb-0">{{ total_a_receber_inscricoes|format_currency }}</p>
           </div>
         </div>
       </div>
 
-      <div class="col-md-6">
+      <div class="col-md-4">
+        <div class="card border-warning mb-2">
+          <div class="card-header bg-warning text-dark py-2">
+            <h6 class="mb-0">Total a Receber (Camisas)</h6>
+          </div>
+          <div class="card-body py-2">
+            <p class="fs-6 mb-0">{{ total_camisas_a_receber|format_currency }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
         <div class="card border-info mb-2">
           <div class="card-header bg-info text-white py-2">
             <h6 class="mb-0">Saldo Futuro Previsto</h6>
@@ -143,6 +154,45 @@
           </div>
           <div class="card-body py-2">
             <p class="fs-6 mb-0">{{ saldo_caixa|format_currency }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- Resumo Camisas -->
+  <fieldset class="border p-2 mb-3 w-100" style="max-width: 800px;">
+    <legend class="w-auto px-2 fs-6">Resumo de Camisas</legend>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card border-info mb-2">
+          <div class="card-header bg-info text-white py-2">
+            <h6 class="mb-0">Camisas Recebidas</h6>
+          </div>
+          <div class="card-body py-2">
+            <p class="fs-6 mb-0">{{ total_camisas_pagas|format_currency }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-warning mb-2">
+          <div class="card-header bg-warning text-dark py-2">
+            <h6 class="mb-0">Camisas a Receber</h6>
+          </div>
+          <div class="card-body py-2">
+            <p class="fs-6 mb-0">{{ total_camisas_a_receber|format_currency }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-success mb-2">
+          <div class="card-header bg-success text-white py-2">
+            <h6 class="mb-0">Total Camisas</h6>
+          </div>
+          <div class="card-body py-2">
+            <p class="fs-6 mb-0">{{ total_camisas_pagas|add:total_camisas_a_receber|format_currency }}</p>
           </div>
         </div>
       </div>

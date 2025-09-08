@@ -1255,12 +1255,31 @@ def resumo_caixa(request):
 
     # Total a receber de inscrições (valor_total - valor_pago)
     total_valor_inscricoes = Inscricao.objects.aggregate(total=Sum('valor_total'))['total'] or 0
-    total_a_receber = total_valor_inscricoes - total_pago_inscricoes
+    total_a_receber_inscricoes = total_valor_inscricoes - total_pago_inscricoes
 
-    # Total camisas - SOMENTE pedidos com status 'pago' ou 'entregue'
+    # Total camisas - SOMENTE pedidos com status 'pago' ou 'entregue' (JÁ PAGOS)
     total_camisas_pagas = (
         PedidoCamisa.objects
         .filter(Q(status='pago') | Q(status='entregue'))
+        .aggregate(
+            total=Coalesce(
+                Sum(
+                    Case(
+                        When(tipo_cliente='equipe', then=Value(0, output_field=DecimalField())),
+                        When(tipo_cliente='colaborador', then=F('camisa__valor_compra')),
+                        default=F('valor_venda'),
+                        output_field=DecimalField()
+                    )
+                ),
+                Value(0, output_field=DecimalField())
+            )
+        )['total']
+    )
+
+    # TOTAL DE CAMISAS A RECEBER - pedidos com status 'pendente' ou 'confirmado'
+    total_camisas_a_receber = (
+        PedidoCamisa.objects
+        .filter(Q(status='pendente') | Q(status='confirmado'))
         .aggregate(
             total=Coalesce(
                 Sum(
@@ -1284,27 +1303,27 @@ def resumo_caixa(request):
     # Valor a pagar = planejado - pago
     total_a_pagar = total_planejamentos - total_pago_planejamento
 
-    # Saldo em caixa = entradas + inscrições pagas + camisas - saídas - pagamentos de planejamento
+    # Saldo em caixa = entradas + inscrições pagas + camisas pagas - saídas - pagamentos de planejamento
     saldo_caixa = (total_entradas + total_pago_inscricoes + total_camisas_pagas) - (total_saidas + total_pago_planejamento)
 
-     # Cálculo da estimativa
-    saldo_futuro_previsto = (saldo_caixa + total_a_receber) - (total_planejamentos - total_saidas)
+    # Cálculo da estimativa futura incluindo camisas a receber
+    saldo_futuro_previsto = (saldo_caixa + total_a_receber_inscricoes + total_camisas_a_receber) - total_a_pagar
 
     context = {
         'total_entradas': total_entradas,
         'total_saidas': total_saidas,
         'total_inscricoes': total_pago_inscricoes,  # Total recebido das inscrições
-        'total_a_receber': total_a_receber,
+        'total_a_receber_inscricoes': total_a_receber_inscricoes,
         'total_planejamentos': total_planejamentos,
         'total_pago_planejamento': total_pago_planejamento,
         'total_a_pagar': total_a_pagar,
         'total_camisas_pagas': total_camisas_pagas,
+        'total_camisas_a_receber': total_camisas_a_receber,
         'saldo_caixa': saldo_caixa,
         'saldo_futuro_previsto': saldo_futuro_previsto,
     }
 
     return render(request, 'resumo/resumo_caixa.html', context)
-
 # Lista de Pagamentos
 @method_decorator(never_cache, name="dispatch")
 class PagamentoListView(ListView):
