@@ -29,6 +29,8 @@ from .models import Inscricao
 from django.utils.timezone import now
 from django.db.models import Sum, F, Value, DecimalField, Q, Case, When
 from django.db.models.functions import Coalesce
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+
 
 
 
@@ -484,27 +486,60 @@ class PedidoCamisaDeleteView(DeleteView):
         messages.success(self.request, "Pedido removido com sucesso")
         return reverse_lazy('list_pedidos')
     
-    
 @method_decorator(never_cache, name="dispatch")   
 class PlanejamentoListView(ListView):
     model = Planejamento
-    paginate_by = 20
+    paginate_by = 50
     template_name = "planejamento/list.html"
 
     def get_queryset(self):
+        queryset = Planejamento.objects.all()
+        
+        # Filtro de busca
         query = self.request.GET.get('q')
         if query:
-            return Planejamento.objects.filter(descricao__icontains=query).order_by(Lower('descricao'))
-        return Planejamento.objects.all().order_by(Lower('descricao'))
+            queryset = queryset.filter(descricao__icontains=query)
+            
+        # Para ordenação, vamos trazer todos e ordenar depois
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Ordenar por status: Pago -> Parcial -> Pendente
+        object_list = list(context['object_list'])
+        object_list.sort(key=lambda x: (
+            0 if x.status == "Pago" else 
+            1 if x.status == "Parcial" else 
+            2,  # Pendente
+            x.descricao.lower()
+        ))
+        
+        # Aplicar filtro de status se necessário
+        status_filter = self.request.GET.get('status_filter')
+        if status_filter:
+            object_list = [obj for obj in object_list if obj.status == status_filter]
+        
+        # Recriar a paginação com a lista ordenada e filtrada
+        paginator = Paginator(object_list, self.paginate_by)
+        page = self.request.GET.get('page')
+        
+        try:
+            object_list = paginator.page(page)
+        except PageNotAnInteger:
+            object_list = paginator.page(1)
+        except EmptyPage:
+            object_list = paginator.page(paginator.num_pages)
+        
+        context['page_obj'] = object_list
+        context['object_list'] = object_list
+        context['paginator'] = paginator
+        
         context['total_planejado'] = Planejamento.objects.aggregate(total=Sum('valor_planejado'))['total'] or 0
         context['q'] = self.request.GET.get('q', '')
         context['create_url'] = reverse('create_planejamento')
         return context
-
-
+        
 @method_decorator(never_cache, name="dispatch")
 class PlanejamentoDetailView(TemplateView):
     template_name = "planejamento/planejamento.html"
