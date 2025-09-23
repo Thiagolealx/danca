@@ -113,6 +113,16 @@ urlpatterns = [
     path('relatorio/pedidos/', PedidosSimplesRelatorioDocxView.as_view(), name='relatorio_pedidos'),
     path('relatorio/caixa/', CaixaCompletoRelatorioDocxView.as_view(), name='relatorio_caixa'),
 
+    path('bailes-avulsos/', BaileAvulsoListView.as_view(), name='list_baile_avulso'),
+    path('bailes-avulsos/novo/', BaileAvulsoFormView.as_view(), name='create_baile_avulso'),
+    path('bailes-avulsos/<int:baile_id>/', BaileAvulsoDetailView.as_view(), name='detail_baile_avulso'),
+    path('bailes-avulsos/<int:baile_id>/editar/', BaileAvulsoFormView.as_view(), name='edit_baile_avulso'),
+    path('bailes-avulsos/<int:baile_id>/excluir/', BaileAvulsoDeleteView.as_view(), name='delete_baile_avulso'),
+
+    # Participantes do Baile Avulso
+    path('bailes-avulsos/<int:baile_id>/participantes/novo/', ParticipanteBaileFormView.as_view(), name='create_participante_baile'),
+    path('bailes-avulsos/<int:baile_id>/participantes/<int:participante_id>/editar/', ParticipanteBaileFormView.as_view(), name='edit_participante_baile'),
+    path('bailes-avulsos/<int:baile_id>/participantes/<int:participante_id>/excluir/', ParticipanteBaileDeleteView.as_view(), name='delete_participante_baile'),
 ]
 
     

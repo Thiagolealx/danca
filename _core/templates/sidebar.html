@@ -118,6 +118,30 @@
                     </ul>
                 </div>
             </li>
+            <!-- Bailes Avulsos -->
+            <li class="nav-item mb-2">
+                <button class="nav-link dropdown" data-bs-toggle="collapse" data-bs-target="#bailes-collapse">
+                    <i class="bi bi-music-note-beamed"></i>
+                    <span style="margin-left: 10px;">Bailes Avulsos</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+                <div class="collapse {% if 'baile' in request.resolver_match.url_name %}show{% endif %}" id="bailes-collapse">
+                    <ul class="nav nav-pills flex-column mb-auto">
+                        <li class="nav-item mb-2 mt-2">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'list_baile_avulso' %}active{% endif %}" href="{% url 'list_baile_avulso' %}">
+                                <i class="bi bi-list"></i>
+                                <span style="margin-left: 10px;">Lista de Bailes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'create_baile_avulso' %}active{% endif %}" href="{% url 'create_baile_avulso' %}">
+                                <i class="bi bi-plus-circle"></i>
+                                <span style="margin-left: 10px;">Novo Baile</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
 
             <!-- Pagamentos -->
             <li class="nav-item mb-2">

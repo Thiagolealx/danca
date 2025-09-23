@@ -410,3 +410,20 @@ class PedidoCamisa(models.Model):
         verbose_name = "Pedido de Camisa"
         verbose_name_plural = "Pedidos de Camisas"
     
+# models.py
+
+class BaileAvulso(models.Model):
+    nome = models.CharField(max_length=100)
+    data = models.DateField()
+    descricao = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.nome} ({self.data})"
+
+class ParticipanteBaile(models.Model):
+    baile = models.ForeignKey(BaileAvulso, on_delete=models.CASCADE, related_name='participantes')
+    nome = models.CharField(max_length=100)
+    lote = models.ForeignKey(Lote, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.nome} - {self.baile.nome} - {self.lote.descricao}"

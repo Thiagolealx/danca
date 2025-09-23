@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Lote,Categoria,TipoEvento,Evento,Camisa,Planejamento,Inscricao, InscricaoEvento,Profissional, ProfissionalEvento, Entrada, Saida,Pagamento,PedidoCamisa
+from .models import Lote,Categoria,TipoEvento,Evento,Camisa,Planejamento,Inscricao, InscricaoEvento,Profissional, ProfissionalEvento, Entrada, Saida,Pagamento,PedidoCamisa,BaileAvulso, ParticipanteBaile
 from decimal import Decimal, InvalidOperation
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
@@ -481,3 +481,27 @@ class PagamentoForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+    
+
+
+
+
+
+class BaileAvulsoForm(forms.ModelForm):
+    class Meta:
+        model = BaileAvulso
+        fields = ['nome', 'data', 'descricao']
+        widgets = {
+            'data': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class ParticipanteBaileForm(forms.ModelForm):
+    class Meta:
+        model = ParticipanteBaile
+        fields = [ 'nome', 'lote']
+        widgets = {            
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'lote': forms.Select(attrs={'class': 'form-select'}),
+        }

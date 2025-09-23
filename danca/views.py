@@ -9,28 +9,21 @@ from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.db.models.functions import Lower
-from .models import Lote, Categoria, TipoEvento, Evento, Camisa,Planejamento,Inscricao, InscricaoEvento, Profissional, ProfissionalEvento, Entrada, Saida,Pagamento,PedidoCamisa
-from .form import LoteForm,CategoriaForm,TipoEventoForm,EventoForm,CamisaForm,PlanejamentoForm,InscricaoForm, InscricaoEventoForm, ProfissionalForm, ProfissionalEventoForm, EntradaForm, SaidaForm, PagamentoForm,PedidoCamisaForm
+from .models import Lote, Categoria, TipoEvento, Evento, Camisa,Planejamento,Inscricao, InscricaoEvento, Profissional, ProfissionalEvento, Entrada, Saida,Pagamento,PedidoCamisa,BaileAvulso, ParticipanteBaile
+from .form import LoteForm,CategoriaForm,TipoEventoForm,EventoForm,CamisaForm,PlanejamentoForm,InscricaoForm, InscricaoEventoForm, ProfissionalForm, ProfissionalEventoForm, EntradaForm, SaidaForm, PagamentoForm,PedidoCamisaForm,BaileAvulsoForm, ParticipanteBaileForm
 from django.shortcuts import redirect,render
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, DateField,Value
 from django.views.decorators.http import require_GET
-from datetime import date
 from django.db.models import OuterRef, Subquery
-from django.contrib.contenttypes.models import ContentType
-from django.db.models.functions import Coalesce
-from django.views import View
-from django.http import HttpResponse
-from docx import Document
-from docx.shared import Inches
 from .models import Inscricao
-from django.utils.timezone import now
 from django.db.models import Sum, F, Value, DecimalField, Q, Case, When
 from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from collections import Counter
+from django.views.generic import ListView, TemplateView, DeleteView
+from django.views.decorators.cache import never_cache
 
 
 
@@ -1528,6 +1521,119 @@ def listar_pagamentos(request):
         'page_obj': page_obj,
     })
 
+
+
+@method_decorator(never_cache, name="dispatch")
+class BaileAvulsoListView(ListView):
+    model = BaileAvulso
+    paginate_by = 10
+    template_name = "baile_avulso/list.html"
+
+    def get_queryset(self):
+        query = self.request.GET.get('q')
+        if query:
+            return BaileAvulso.objects.filter(nome__icontains=query)
+        return BaileAvulso.objects.all().order_by('-data')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['q'] = self.request.GET.get('q', '')
+        context['create_url'] = reverse('create_baile_avulso')
+        return context
+
+@method_decorator(never_cache, name="dispatch")
+class BaileAvulsoDetailView(TemplateView):
+    template_name = "baile_avulso/detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        baile = get_object_or_404(BaileAvulso, id=self.kwargs['baile_id'])
+        participantes = ParticipanteBaile.objects.filter(baile=baile)
+        context['baile'] = baile
+        context['participantes'] = participantes
+        context['create_participante_url'] = reverse('create_participante_baile', kwargs={'baile_id': baile.id})
+        return context
+
+@method_decorator(never_cache, name="dispatch")
+class BaileAvulsoFormView(View):
+    form_class = BaileAvulsoForm
+    template_name = "baile_avulso/form.html"
+
+    def get(self, request, baile_id=None):
+        form = self.form_class()
+        titulo = "Novo Baile Avulso"
+        if baile_id:
+            baile = get_object_or_404(BaileAvulso, id=baile_id)
+            form = self.form_class(instance=baile)
+            titulo = "Editar Baile Avulso"
+        return render(request, self.template_name, {"form": form, "titulo": titulo})
+
+    def post(self, request, baile_id=None):
+        form = self.form_class(request.POST)
+        msg = 'Baile avulso criado com sucesso'
+        if baile_id:
+            baile = get_object_or_404(BaileAvulso, id=baile_id)
+            form = self.form_class(request.POST, instance=baile)
+            msg = 'Baile avulso atualizado com sucesso'
+        if form.is_valid():
+            form.save()
+            messages.success(request, msg)
+            return redirect('list_baile_avulso')
+        return render(request, self.template_name, {"form": form})
+
+@method_decorator(never_cache, name="dispatch")
+class BaileAvulsoDeleteView(DeleteView):
+    model = BaileAvulso
+    pk_url_kwarg = "baile_id"
+
+    def get_success_url(self):
+        messages.success(self.request, "Baile avulso removido com sucesso")
+        return reverse_lazy('list_baile_avulso')
+
+# Participantes
+
+@method_decorator(never_cache, name="dispatch")
+class ParticipanteBaileFormView(View):
+    form_class = ParticipanteBaileForm
+    template_name = "baile_avulso/form_participante.html"
+
+    def get(self, request, baile_id=None, participante_id=None):
+        baile = get_object_or_404(BaileAvulso, id=baile_id)
+        form = self.form_class(initial={'baile': baile})
+        titulo = "Novo Participante"
+        if participante_id:
+            participante = get_object_or_404(ParticipanteBaile, id=participante_id)
+            form = self.form_class(instance=participante)
+            titulo = "Editar Participante"
+        return render(request, self.template_name, {"form": form, "titulo": titulo, "baile": baile})
+
+    def post(self, request, baile_id=None, participante_id=None):
+        baile = get_object_or_404(BaileAvulso, id=baile_id)
+        if participante_id:
+            participante = get_object_or_404(ParticipanteBaile, id=participante_id)
+            form = self.form_class(request.POST, instance=participante)
+            msg = 'Participante atualizado com sucesso'
+        else:
+            form = self.form_class(request.POST)
+            msg = 'Participante adicionado com sucesso'
+        if form.is_valid():
+            participante = form.save(commit=False)
+            participante.baile = baile  # Preenche o baile aqui!
+            participante.save()
+            messages.success(request, msg)
+            return redirect('detail_baile_avulso', baile_id=baile.id)
+        return render(request, self.template_name, {"form": form, "baile": baile})
+
+@method_decorator(never_cache, name="dispatch")
+class ParticipanteBaileDeleteView(DeleteView):
+    model = ParticipanteBaile
+    pk_url_kwarg = "participante_id"
+
+    def get_success_url(self):
+        participante = self.object
+        messages.success(self.request, "Participante removido com sucesso")
+        return reverse_lazy('detail_baile_avulso', kwargs={'baile_id': participante.baile.id})
+
 # Relatorios - agora estão em relatorios.py
 from .relatorios import (
     InscricaoRelatorioDocxView,
@@ -1537,3 +1643,5 @@ from .relatorios import (
     PedidosSimplesRelatorioDocxView,
     CaixaCompletoRelatorioDocxView
 )
+
+
