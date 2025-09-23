@@ -30,6 +30,7 @@ from django.utils.timezone import now
 from django.db.models import Sum, F, Value, DecimalField, Q, Case, When
 from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from collections import Counter
 
 
 
@@ -489,7 +490,7 @@ class PedidoCamisaDeleteView(DeleteView):
 @method_decorator(never_cache, name="dispatch")   
 class PlanejamentoListView(ListView):
     model = Planejamento
-    paginate_by = 50
+    paginate_by = 80
     template_name = "planejamento/list.html"
 
     def get_queryset(self):
@@ -595,7 +596,7 @@ class PlanejamentoDeleteView(DeleteView):
 @method_decorator(never_cache, name="dispatch")
 class InscricaoListView(ListView):
     model = Inscricao
-    paginate_by = 50
+    paginate_by = 120
     template_name = "inscricao/list.html"
 
     def get_queryset(self):
@@ -1527,9 +1528,12 @@ def listar_pagamentos(request):
         'page_obj': page_obj,
     })
 
+#aqui
 class InscricaoRelatorioDocxView(InscricaoListView):
     """ Gera relatório .docx como lista enumerada """
     def get(self, request, *args, **kwargs):
+        # Remove a paginação para pegar todos os registros
+        self.paginate_by = None
         queryset = self.get_queryset()
 
         document = Document()
@@ -1537,6 +1541,9 @@ class InscricaoRelatorioDocxView(InscricaoListView):
         document.add_paragraph(f'Gerado em: {now().strftime("%d/%m/%Y %H:%M")}')
         document.add_paragraph(f'Total de inscrições: {queryset.count()}')
         document.add_paragraph('')
+
+        # Contador para UF
+        uf_counter = Counter()
 
         for inscricao in queryset:
             categoria = inscricao.categoria.descricao if inscricao.categoria else 'Sem categoria'
@@ -1546,11 +1553,24 @@ class InscricaoRelatorioDocxView(InscricaoListView):
                 status = 'Parcial'
             else:
                 status = 'Pendente'
+            
+            # Adiciona a UF (assumindo que o campo se chama 'uf')
+            uf = getattr(inscricao, 'uf', 'Não informado') or 'Não informado'
+            
+            # Contabiliza a UF
+            uf_counter[uf] += 1
+            
             document.add_paragraph(
-                f'{inscricao.nome} — {categoria} — {status}',
+                f'{inscricao.nome} — {inscricao.cpf} — {categoria} — {status} — UF: {uf}',
                 style='List Number'
             )
 
+        # Adiciona seção com contagem por UF
+        document.add_paragraph('')
+        document.add_heading('Resumo por UF', level=1)
+        
+        for uf, quantidade in sorted(uf_counter.items()):
+            document.add_paragraph(f'{uf}: {quantidade} inscrição(s)')
 
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -1560,39 +1580,50 @@ class InscricaoRelatorioDocxView(InscricaoListView):
         return response
 
 
-
 def evento_inscritos_docx(request, pk):
     evento = Evento.objects.get(pk=pk)
 
-    # Congressistas
+    # Congressistas - removendo qualquer limitação de paginação
     inscritos = (
         InscricaoEvento.objects
         .filter(evento=evento)
         .select_related('inscricao')
         .order_by('inscricao__nome')
     )
-    lista_congressistas = [
-        {
-            'nome': i.inscricao.nome or 'Sem Cadastro',
-            'cpf': i.inscricao.cpf or 'Sem Cadastro'
-        }
-        for i in inscritos
-    ]
-
-    # Profissionais
+    
+    # Profissionais - removendo qualquer limitação de paginação
     profissionais = (
         ProfissionalEvento.objects
         .filter(evento=evento)
         .select_related('profissional')
         .order_by('profissional__nome')
     )
-    lista_profissionais = [
-        {
+
+    # Contadores para UF
+    uf_congressistas = Counter()
+    uf_profissionais = Counter()
+
+    # Congressistas com UF
+    lista_congressistas = []
+    for i in inscritos:
+        uf = getattr(i.inscricao, 'uf', 'Não informado') or 'Não informado'
+        lista_congressistas.append({
+            'nome': i.inscricao.nome or 'Sem Cadastro',
+            'cpf': i.inscricao.cpf or 'Sem Cadastro',
+            'uf': uf
+        })
+        uf_congressistas[uf] += 1
+
+    # Profissionais com UF
+    lista_profissionais = []
+    for p in profissionais:
+        uf = getattr(p.profissional, 'uf', 'Não informado') or 'Não informado'
+        lista_profissionais.append({
             'nome': p.profissional.nome or 'Sem Cadastro',
-            'cpf': p.profissional.cpf or 'Sem Cadastro'
-        }
-        for p in profissionais
-    ]
+            'cpf': p.profissional.cpf or 'Sem Cadastro',
+            'uf': uf
+        })
+        uf_profissionais[uf] += 1
 
     total_congressistas = len(lista_congressistas)
     total_profissionais = len(lista_profissionais)
@@ -1606,22 +1637,44 @@ def evento_inscritos_docx(request, pk):
     # Congressistas
     document.add_heading('Congressistas', level=1)
     document.add_paragraph(f'Total de congressistas: {total_congressistas}')
+    
     for c in lista_congressistas:
         document.add_paragraph(
-            f'{c["nome"]} — {c["cpf"]}',
+            f'{c["nome"]} — {c["cpf"]} — UF: {c["uf"]}',
             style='List Number'
         )
+
+    # Resumo UF Congressistas
+    document.add_paragraph('')
+    document.add_heading('Congressistas por UF', level=2)
+    for uf, quantidade in sorted(uf_congressistas.items()):
+        document.add_paragraph(f'{uf}: {quantidade} congressista(s)')
 
     document.add_paragraph('')
 
     # Profissionais
     document.add_heading('Profissionais', level=1)
     document.add_paragraph(f'Total de profissionais: {total_profissionais}')
+    
     for p in lista_profissionais:
         document.add_paragraph(
-            f'{p["nome"]} — {p["cpf"]}',
+            f'{p["nome"]} — {p["cpf"]} — UF: {p["uf"]}',
             style='List Number'
         )
+
+    # Resumo UF Profissionais
+    document.add_paragraph('')
+    document.add_heading('Profissionais por UF', level=2)
+    for uf, quantidade in sorted(uf_profissionais.items()):
+        document.add_paragraph(f'{uf}: {quantidade} profissional(is)')
+
+    document.add_paragraph('')
+    
+    # Resumo Geral por UF
+    uf_geral = uf_congressistas + uf_profissionais
+    document.add_heading('Total Geral por UF', level=1)
+    for uf, quantidade in sorted(uf_geral.items()):
+        document.add_paragraph(f'{uf}: {quantidade} participante(s)')
 
     document.add_paragraph('')
     document.add_paragraph(f'Total geral (congressistas + profissionais): {total_geral}')
@@ -1633,10 +1686,10 @@ def evento_inscritos_docx(request, pk):
     document.save(response)
     return response
 
-from django.http import HttpResponse
+
 from django.utils.timezone import now
 from docx import Document
-from .models import Profissional
+
 
 class ProfissionalRelatorioDocxView(View):
     """ Gera relatório minimalista apenas com dados essenciais """
