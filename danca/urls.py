@@ -104,6 +104,15 @@ urlpatterns = [
     path('pagamento/<int:pagamento_id>/delete/', PagamentoDeleteView.as_view(), name='delete_pagamento'),
     # path('pagamentos/relacionados/', carregar_objetos_pagamento, name='carregar_objetos_pagamento'),  # AJAX
     path('carregar_objetos_pagamento/', carregar_objetos_pagamento, name='carregar_objetos_pagamento'),
+
+    # Relatórios
+    path('relatorio/inscricoes/', InscricaoRelatorioDocxView.as_view(), name='relatorio_inscricoes'),
+    path('relatorio/evento/<int:pk>/inscritos/', evento_inscritos_docx, name='relatorio_evento_inscritos'),
+    path('relatorio/profissionais/', ProfissionalRelatorioDocxView.as_view(), name='relatorio_profissionais'),
+    path('relatorio/planejamento/', PlanejamentoRelatorioDocxView.as_view(), name='relatorio_planejamento'),
+    path('relatorio/pedidos/', PedidosSimplesRelatorioDocxView.as_view(), name='relatorio_pedidos'),
+    path('relatorio/caixa/', CaixaCompletoRelatorioDocxView.as_view(), name='relatorio_caixa'),
+
 ]
 
     
