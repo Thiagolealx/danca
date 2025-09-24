@@ -1548,12 +1548,23 @@ class BaileAvulsoDetailView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         baile = get_object_or_404(BaileAvulso, id=self.kwargs['baile_id'])
-        participantes = ParticipanteBaile.objects.filter(baile=baile)
-        context['baile'] = baile
-        context['participantes'] = participantes
-        context['create_participante_url'] = reverse('create_participante_baile', kwargs={'baile_id': baile.id})
-        return context
+        participantes = (
+            ParticipanteBaile.objects.filter(baile=baile)
+            .select_related('lote')
+        )
+        total = sum([
+            p.lote.valor_unitario
+            for p in participantes
+            if p.lote and p.lote.valor_unitario
+        ])
 
+        context.update({
+            "baile": baile,
+            "participantes": participantes,
+            "total_lotes": total,
+            "lucro": total - baile.gasto, 
+        })
+        return context
 @method_decorator(never_cache, name="dispatch")
 class BaileAvulsoFormView(View):
     form_class = BaileAvulsoForm
@@ -1641,7 +1652,8 @@ from .relatorios import (
     ProfissionalRelatorioDocxView,
     PlanejamentoRelatorioDocxView,
     PedidosSimplesRelatorioDocxView,
-    CaixaCompletoRelatorioDocxView
+    CaixaCompletoRelatorioDocxView,
+    RelatorioBaileView
 )
 
 

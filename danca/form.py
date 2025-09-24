@@ -490,11 +490,12 @@ class PagamentoForm(forms.ModelForm):
 class BaileAvulsoForm(forms.ModelForm):
     class Meta:
         model = BaileAvulso
-        fields = ['nome', 'data', 'descricao']
+        fields = ['nome', 'data', 'descricao','gasto']
         widgets = {
             'data': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'gasto': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }
 
 class ParticipanteBaileForm(forms.ModelForm):

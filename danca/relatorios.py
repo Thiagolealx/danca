@@ -11,7 +11,11 @@ from django.views import View
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-from .models import Inscricao, Evento, Profissional, Planejamento, PedidoCamisa, Pagamento, InscricaoEvento, ProfissionalEvento
+from .models import Inscricao, Evento, Profissional, Planejamento, PedidoCamisa, Pagamento, InscricaoEvento, ProfissionalEvento, BaileAvulso, ParticipanteBaile
+from django.shortcuts import render
+import csv
+from datetime import datetime
+from django.template.loader import render_to_string
 from .views import InscricaoListView
 from collections import Counter
 
@@ -505,4 +509,123 @@ class CaixaCompletoRelatorioDocxView(View):
         )
         response['Content-Disposition'] = 'attachment; filename="relatorio_caixa_simples.docx"'
         document.save(response)
+        return response
+    
+class RelatorioBaileView(View):
+    """ Gera relatório do baile em Word com participantes agrupados por lote """
+    
+    def get(self, request, baile_id):
+        baile = get_object_or_404(BaileAvulso, id=baile_id)
+        participantes = (
+            ParticipanteBaile.objects.filter(baile=baile)
+            .select_related('lote')
+            .order_by('lote__descricao', 'nome')
+        )
+        
+        # Agrupar participantes por lote
+        participantes_por_lote = {}
+        for participante in participantes:
+            lote_descricao = participante.lote.descricao if participante.lote else "Sem Lote"
+            if lote_descricao not in participantes_por_lote:
+                participantes_por_lote[lote_descricao] = []
+            participantes_por_lote[lote_descricao].append(participante)
+        
+        # Calcular totais
+        total_arrecadado = sum([
+            p.lote.valor_unitario 
+            for p in participantes 
+            if p.lote and p.lote.valor_unitario
+        ])
+        lucro = total_arrecadado - (baile.gasto or 0)
+        
+        # Criar documento Word
+        document = Document()
+        
+        # Cabeçalho
+        document.add_heading(f'Relatório do Baile: {baile.nome}', 0)
+        
+        # Informações do baile
+        info_paragraph = document.add_paragraph()
+        info_paragraph.add_run('Data: ').bold = True
+        info_paragraph.add_run(baile.data.strftime("%d/%m/%Y"))
+        
+        info_paragraph = document.add_paragraph()
+        info_paragraph.add_run('Descrição: ').bold = True
+        info_paragraph.add_run(baile.descricao or "---")
+        
+        info_paragraph = document.add_paragraph()
+        info_paragraph.add_run('Gerado em: ').bold = True
+        info_paragraph.add_run(now().strftime("%d/%m/%Y %H:%M"))
+        
+        document.add_paragraph()
+        
+        # Resumo financeiro
+        document.add_heading('Resumo Financeiro', level=1)
+        
+        resumo_table = document.add_table(rows=4, cols=2)
+        resumo_table.style = 'Light Grid Accent 1'
+        
+        # Dados do resumo
+        resumo_data = [
+            ('Total de Participantes:', str(participantes.count())),
+            ('Total Arrecadado:', f'R$ {total_arrecadado:,.2f}'),
+            ('Gastos:', f'R$ {baile.gasto or 0:,.2f}'),
+            ('Lucro:', f'R$ {lucro:,.2f}')
+        ]
+        
+        for i, (label, value) in enumerate(resumo_data):
+            resumo_table.rows[i].cells[0].text = label
+            resumo_table.rows[i].cells[1].text = value
+        
+        document.add_paragraph()
+        
+        # Participantes agrupados por lote
+        document.add_heading('Participantes por Lote', level=1)
+        
+        for lote_descricao, participantes_lote in participantes_por_lote.items():
+            # Título do lote
+            document.add_heading(f'Lote: {lote_descricao}', level=2)
+            document.add_paragraph(f'Quantidade: {len(participantes_lote)} participantes')
+            
+            # Tabela de participantes do lote
+            if participantes_lote:
+                table = document.add_table(rows=1, cols=3)
+                table.style = 'Light Grid Accent 1'
+                
+                # Cabeçalho
+                hdr_cells = table.rows[0].cells
+                hdr_cells[0].text = '#'
+                hdr_cells[1].text = 'Nome'
+                hdr_cells[2].text = 'Valor Pago'
+                
+                # Dados
+                for i, participante in enumerate(participantes_lote, 1):
+                    row_cells = table.add_row().cells
+                    row_cells[0].text = str(i)
+                    row_cells[1].text = participante.nome
+                    valor = participante.lote.valor_unitario if participante.lote else 0
+                    row_cells[2].text = f'R$ {valor:,.2f}'
+                
+                # Total do lote
+                total_lote = sum(p.lote.valor_unitario for p in participantes_lote if p.lote)
+                total_row = table.add_row().cells
+                total_row[0].text = ''
+                total_row[1].text = 'Total do Lote:'
+                total_row[2].text = f'R$ {total_lote:,.2f}'
+                
+                # Formatar célula de total
+                for cell in total_row:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.bold = True
+            
+            document.add_paragraph()
+        
+        # Preparar resposta
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="baile_{baile.id}_relatorio.docx"'
+        document.save(response)
+        
         return response

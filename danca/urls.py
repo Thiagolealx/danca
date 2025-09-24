@@ -123,6 +123,7 @@ urlpatterns = [
     path('bailes-avulsos/<int:baile_id>/participantes/novo/', ParticipanteBaileFormView.as_view(), name='create_participante_baile'),
     path('bailes-avulsos/<int:baile_id>/participantes/<int:participante_id>/editar/', ParticipanteBaileFormView.as_view(), name='edit_participante_baile'),
     path('bailes-avulsos/<int:baile_id>/participantes/<int:participante_id>/excluir/', ParticipanteBaileDeleteView.as_view(), name='delete_participante_baile'),
+    path('bailes-avulsos/<int:baile_id>/relatorio/', RelatorioBaileView.as_view(), name='relatorio_baile'),
 ]
 
     

@@ -410,12 +410,18 @@ class PedidoCamisa(models.Model):
         verbose_name = "Pedido de Camisa"
         verbose_name_plural = "Pedidos de Camisas"
     
-# models.py
+
 
 class BaileAvulso(models.Model):
     nome = models.CharField(max_length=100)
     data = models.DateField()
     descricao = models.TextField(blank=True, null=True)
+    gasto = models.DecimalField(      
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Gasto total com este baile (ex.: aluguel, músicos etc.)"
+    )
 
     def __str__(self):
         return f"{self.nome} ({self.data})"
