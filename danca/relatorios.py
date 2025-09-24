@@ -5,13 +5,13 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Q
 from django.db.models.functions import Lower
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, When, Value, DecimalField
+from django.db.models import Case, When, Value, DecimalField, F
 from django.db.models.functions import Coalesce
 from django.views import View
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-from .models import Inscricao, Evento, Profissional, Planejamento, PedidoCamisa, Pagamento, InscricaoEvento, ProfissionalEvento, BaileAvulso, ParticipanteBaile
+from .models import Entrada, Inscricao, Evento, Profissional, Planejamento, PedidoCamisa, Pagamento, InscricaoEvento, ProfissionalEvento, BaileAvulso, ParticipanteBaile, Saida
 from django.shortcuts import render
 import csv
 from datetime import datetime
@@ -379,7 +379,7 @@ class PedidosSimplesRelatorioDocxView(View):
 
 
 class CaixaCompletoRelatorioDocxView(View):
-    """ Gera relatório completo do caixa sem tabelas """
+    """ Gera relatório completo do caixa usando os mesmos cálculos do resumo """
     
     def get(self, request, *args, **kwargs):
         document = Document()
@@ -387,75 +387,86 @@ class CaixaCompletoRelatorioDocxView(View):
         document.add_paragraph(f'Gerado em: {now().strftime("%d/%m/%Y %H:%M")}')
         document.add_paragraph('')
         
-        # ============ CÁLCULOS ============
+        # ============ CÁLCULOS (IGUAIS AO RESUMO) ============
         
-        # PLANEJAMENTO
-        total_planejado = Planejamento.objects.aggregate(
-            total=Sum('valor_planejado')
-        )['total'] or 0
-        
-        # PAGAMENTOS (CAIXA GERAL)
-        total_entradas = Pagamento.objects.filter(
-            valor_pago__gt=0
-        ).aggregate(total=Sum('valor_pago'))['total'] or 0
-        
-        total_saidas = Pagamento.objects.filter(
-            valor_pago__lt=0
-        ).aggregate(total=Sum('valor_pago'))['total'] or 0
-        
-        total_saidas = abs(total_saidas) if total_saidas else 0
-        saldo_caixa = total_entradas - total_saidas
-        
-        # INSCRIÇÕES
-        total_inscricoes = Inscricao.objects.aggregate(
-            total=Sum('valor_total')
-        )['total'] or 0
-        
-        inscricao_content_type = ContentType.objects.get_for_model(Inscricao)
-        pagamentos_inscricoes = Pagamento.objects.filter(
-            content_type=inscricao_content_type,
-            valor_pago__gt=0
-        ).aggregate(total=Sum('valor_pago'))['total'] or 0
-        
-        total_inscricoes_pagas = pagamentos_inscricoes
-        total_inscricoes_receber = max(total_inscricoes - pagamentos_inscricoes, 0)
-        
-        # CAMISAS
-        total_camisas = PedidoCamisa.objects.aggregate(
-            total=Sum('valor_venda')
-        )['total'] or 0
-        
-        camisas_pagas = PedidoCamisa.objects.filter(
-            status='pago'
-        ).aggregate(total=Sum('valor_venda'))['total'] or 0
-        
-        camisas_receber = total_camisas - camisas_pagas
-        
-        # SALDO FUTURO PREVISTO
-        saldo_futuro_previsto = saldo_caixa + total_inscricoes_receber + camisas_receber - total_planejado
-        
+        # Entradas e saídas
+        total_entradas = Entrada.objects.aggregate(total=Sum('valor'))['total'] or 0
+        total_saidas = Saida.objects.aggregate(total=Sum('valor'))['total'] or 0
+
+        # Total inscricoes pagas (somando os pagamentos com tipo_modelo='inscricao')
+        ct_inscricao = ContentType.objects.get_for_model(Inscricao)
+        total_pago_inscricoes = Pagamento.objects.filter(content_type=ct_inscricao).aggregate(total=Sum('valor_pago'))['total'] or 0
+
+        # Total a receber de inscrições (valor_total - valor_pago)
+        total_valor_inscricoes = Inscricao.objects.aggregate(total=Sum('valor_total'))['total'] or 0
+        total_a_receber_inscricoes = total_valor_inscricoes - total_pago_inscricoes
+
+        # Total camisas - SOMENTE pedidos com status 'pago' ou 'entregue' (JÁ PAGOS)
+        total_camisas_pagas = (
+            PedidoCamisa.objects
+            .filter(Q(status='pago') | Q(status='entregue'))
+            .aggregate(
+                total=Coalesce(
+                    Sum(
+                        Case(
+                            When(tipo_cliente='equipe', then=Value(0, output_field=DecimalField())),
+                            When(tipo_cliente='colaborador', then=F('camisa__valor_compra')),
+                            default=F('valor_venda'),
+                            output_field=DecimalField()
+                        )
+                    ),
+                    Value(0, output_field=DecimalField())
+                )
+            )['total']
+        )
+
+        # TOTAL DE CAMISAS A RECEBER - pedidos com status 'pendente' ou 'confirmado'
+        total_camisas_a_receber = (
+            PedidoCamisa.objects
+            .filter(Q(status='pendente') | Q(status='confirmado'))
+            .aggregate(
+                total=Coalesce(
+                    Sum(
+                        Case(
+                            When(tipo_cliente='equipe', then=Value(0, output_field=DecimalField())),
+                            When(tipo_cliente='colaborador', then=F('camisa__valor_compra')),
+                            default=F('valor_venda'),
+                            output_field=DecimalField()
+                        )
+                    ),
+                    Value(0, output_field=DecimalField())
+                )
+            )['total']
+        )
+
+        # Total planejado e total pago em planejamentos
+        total_planejamentos = Planejamento.objects.aggregate(total=Sum('valor_planejado'))['total'] or 0
+        ct_planejamento = ContentType.objects.get_for_model(Planejamento)
+        total_pago_planejamento = Pagamento.objects.filter(content_type=ct_planejamento).aggregate(total=Sum('valor_pago'))['total'] or 0
+
+        # Valor a pagar = planejado - pago
+        total_a_pagar = total_planejamentos - total_pago_planejamento
+
+        # Saldo em caixa = entradas + inscrições pagas + camisas pagas - saídas - pagamentos de planejamento
+        saldo_caixa = (total_entradas + total_pago_inscricoes + total_camisas_pagas) - (total_saidas + total_pago_planejamento)
+
+        # Cálculo da estimativa futura incluindo camisas a receber
+        saldo_futuro_previsto = (saldo_caixa + total_a_receber_inscricoes + total_camisas_a_receber) - total_a_pagar
+
         # ============ RELATÓRIO ============
-        
+
         # RESUMO GERAL
         document.add_heading('Resumo Financeiro Geral', level=1)
         
-        # CAIXA ATUAL
+        # SALDO ATUAL
         p = document.add_paragraph()
-        p.add_run('Valor no Caixa Atual: ').bold = True
+        p.add_run('Saldo em Caixa: ').bold = True
         p.add_run(f'R$ {saldo_caixa:,.2f}')
         
         document.add_paragraph('')
         
-        # PLANEJAMENTO
-        document.add_heading('Planejamento', level=2)
-        p = document.add_paragraph()
-        p.add_run('Total Planejado: ').bold = True
-        p.add_run(f'R$ {total_planejado:,.2f}')
-        
-        document.add_paragraph('')
-        
-        # FLUXO DE CAIXA
-        document.add_heading('Fluxo de Caixa', level=2)
+        # ENTRADAS E SAÍDAS
+        document.add_heading('Entradas e Saídas', level=2)
         p = document.add_paragraph()
         p.add_run('Total de Entradas: ').bold = True
         p.add_run(f'R$ {total_entradas:,.2f}')
@@ -470,31 +481,43 @@ class CaixaCompletoRelatorioDocxView(View):
         document.add_heading('Inscrições', level=2)
         p = document.add_paragraph()
         p.add_run('Valor Total das Inscrições: ').bold = True
-        p.add_run(f'R$ {total_inscricoes:,.2f}')
+        p.add_run(f'R$ {total_valor_inscricoes:,.2f}')
         
         p = document.add_paragraph()
         p.add_run('Inscrições Pagas: ').bold = True
-        p.add_run(f'R$ {total_inscricoes_pagas:,.2f}')
+        p.add_run(f'R$ {total_pago_inscricoes:,.2f}')
         
         p = document.add_paragraph()
         p.add_run('Total a Receber (Inscrições): ').bold = True
-        p.add_run(f'R$ {total_inscricoes_receber:,.2f}')
+        p.add_run(f'R$ {total_a_receber_inscricoes:,.2f}')
         
         document.add_paragraph('')
         
         # CAMISAS
         document.add_heading('Camisas', level=2)
         p = document.add_paragraph()
-        p.add_run('Vendas de Camisas: ').bold = True
-        p.add_run(f'R$ {total_camisas:,.2f}')
-        
-        p = document.add_paragraph()
         p.add_run('Camisas Pagas: ').bold = True
-        p.add_run(f'R$ {camisas_pagas:,.2f}')
+        p.add_run(f'R$ {total_camisas_pagas:,.2f}')
         
         p = document.add_paragraph()
         p.add_run('Total a Receber (Camisas): ').bold = True
-        p.add_run(f'R$ {camisas_receber:,.2f}')
+        p.add_run(f'R$ {total_camisas_a_receber:,.2f}')
+        
+        document.add_paragraph('')
+        
+        # PLANEJAMENTO
+        document.add_heading('Planejamento', level=2)
+        p = document.add_paragraph()
+        p.add_run('Total Planejado: ').bold = True
+        p.add_run(f'R$ {total_planejamentos:,.2f}')
+        
+        p = document.add_paragraph()
+        p.add_run('Planejamento Pago: ').bold = True
+        p.add_run(f'R$ {total_pago_planejamento:,.2f}')
+        
+        p = document.add_paragraph()
+        p.add_run('Total a Pagar (Planejamento): ').bold = True
+        p.add_run(f'R$ {total_a_pagar:,.2f}')
         
         document.add_paragraph('')
         
@@ -510,7 +533,6 @@ class CaixaCompletoRelatorioDocxView(View):
         response['Content-Disposition'] = 'attachment; filename="relatorio_caixa_simples.docx"'
         document.save(response)
         return response
-    
 class RelatorioBaileView(View):
     """ Gera relatório do baile em Word com participantes agrupados por lote """
     
