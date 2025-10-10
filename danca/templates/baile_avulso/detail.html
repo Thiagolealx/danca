@@ -38,6 +38,14 @@
                         <strong class="text-success">R$ {{ total_lotes|floatformat:2 }}</strong>
                     </div>
                 </div>
+                {% if total_descontos > 0 %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Total de Descontos:</span>
+                        <strong class="text-warning">- R$ {{ total_descontos|floatformat:2 }}</strong>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="mb-2">
                     <div class="d-flex justify-content-between">
                         <span>Gastos:</span>
@@ -111,7 +119,21 @@
                                 <td class="align-middle">{{ participante.lote.descricao }}</td>
                                 <td class="align-middle">
                                     {% if participante.lote %}
-                                    R$ {{ participante.lote.valor_unitario|floatformat:2 }}
+                                        {% if participante.desconto > 0 %}
+                                        <div class="text-nowrap">
+                                            <div class="text-decoration-line-through text-muted small">
+                                                R$ {{ participante.lote.valor_unitario|floatformat:2 }}
+                                            </div>
+                                            <div class="fw-bold text-success">
+                                                R$ {{ participante.valor_final|floatformat:2 }}
+                                            </div>
+                                            <small class="text-danger">
+                                                (-R$ {{ participante.desconto|floatformat:2 }})
+                                            </small>
+                                        </div>
+                                        {% else %}
+                                        R$ {{ participante.lote.valor_unitario|floatformat:2 }}
+                                        {% endif %}
                                     {% else %}
                                     -
                                     {% endif %}

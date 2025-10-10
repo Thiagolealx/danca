@@ -501,8 +501,19 @@ class BaileAvulsoForm(forms.ModelForm):
 class ParticipanteBaileForm(forms.ModelForm):
     class Meta:
         model = ParticipanteBaile
-        fields = [ 'nome', 'lote']
+        fields = ['nome', 'lote', 'desconto']
         widgets = {            
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
-            'lote': forms.Select(attrs={'class': 'form-select'}),
+            'lote': forms.Select(attrs={'class': 'form-select', 'id': 'id_lote'}),
+            'desconto': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'id': 'id_desconto'
+            }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Só adiciona o placeholder se o campo desconto existir
+        if 'desconto' in self.fields:
+            self.fields['desconto'].widget.attrs['placeholder'] = '0.00'

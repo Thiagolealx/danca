@@ -38,9 +38,73 @@
       {{ form.lote }}
     </div>
   </div>
+  
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="{{ form.desconto.id_for_label }}">{{ form.desconto.label }}</label>
+      <div class="input-group">
+        <span class="input-group-text">R$</span>
+        {{ form.desconto }}
+      </div>
+      <small class="form-text text-muted">Desconto aplicado ao valor do lote selecionado.</small>
+    </div>
+    <div class="col-md-6 mb-3">
+      <label>Valor do Lote:</label>
+      <div class="form-control" id="valor-lote" style="background-color: #f8f9fa;">
+        R$ 0,00
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label>Valor Final:</label>
+      <div class="form-control fw-bold text-success" id="valor-final" style="background-color: #e8f5e8;">
+        R$ 0,00
+      </div>
+    </div>
+  </div>
+
   <button type="submit" class="btn btn-success float-end">
     <i class="bi bi-floppy"></i> Salvar
   </button>
   <a href="{% url 'detail_baile_avulso' baile.id %}" class="btn btn-secondary"><i class="bi bi-arrow-90deg-left"></i> Voltar</a>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loteSelect = document.getElementById('id_lote');
+    const descontoInput = document.getElementById('id_desconto');
+    const valorLoteDiv = document.getElementById('valor-lote');
+    const valorFinalDiv = document.getElementById('valor-final');
+    
+    // Dicionário com valores dos lotes
+    const valoresLotes = {};
+    
+    // Preencher o dicionário com valores dos lotes disponíveis
+    {% for lote in form.fields.lote.queryset %}
+        valoresLotes['{{ lote.id }}'] = parseFloat('{{ lote.valor_unitario }}');
+    {% endfor %}
+    
+    // Função para atualizar os valores exibidos
+    function atualizarValores() {
+        const loteId = loteSelect.value;
+        const valorLote = valoresLotes[loteId] || 0;
+        const desconto = parseFloat(descontoInput.value) || 0;
+        const valorFinal = Math.max(0, valorLote - desconto);
+        
+        valorLoteDiv.textContent = `R$ ${valorLote.toFixed(2).replace('.', ',')}`;
+        valorFinalDiv.textContent = `R$ ${valorFinal.toFixed(2).replace('.', ',')}`;
+    }
+    
+    // Event listeners
+    loteSelect.addEventListener('change', atualizarValores);
+    descontoInput.addEventListener('input', atualizarValores);
+    
+    // Atualizar valores iniciais
+    atualizarValores();
+});
+</script>
 {% endblock %}

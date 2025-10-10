@@ -430,6 +430,18 @@ class ParticipanteBaile(models.Model):
     baile = models.ForeignKey(BaileAvulso, on_delete=models.CASCADE, related_name='participantes')
     nome = models.CharField(max_length=100)
     lote = models.ForeignKey(Lote, on_delete=models.CASCADE)
+    desconto = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Desconto aplicado ao valor do lote"
+    )
 
     def __str__(self):
         return f"{self.nome} - {self.baile.nome} - {self.lote.descricao}"
+    
+    @property
+    def valor_final(self):
+        """Calcula o valor final após desconto"""
+        valor_lote = self.lote.valor_unitario if self.lote else 0
+        return max(0, valor_lote - self.desconto)

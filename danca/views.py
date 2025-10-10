@@ -1565,23 +1565,32 @@ class BaileAvulsoDetailView(TemplateView):
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         
-        # Cálculos totais e resumo por lote
+        # Cálculos totais e resumo por lote (AGORA CONSIDERANDO DESCONTOS)
         total_recebido = 0
+        total_descontos = 0
         resumo_lotes = {}
         
         for participante in participantes_queryset:
             if participante.lote:
                 lote_nome = participante.lote.descricao
-                valor = participante.lote.valor_unitario
-                total_recebido += valor
+                valor_lote = participante.lote.valor_unitario
+                desconto = participante.desconto
+                valor_final = max(0, valor_lote - desconto)
+                
+                total_recebido += valor_final
+                total_descontos += desconto
                 
                 if lote_nome in resumo_lotes:
                     resumo_lotes[lote_nome]['quantidade'] += 1
-                    resumo_lotes[lote_nome]['total'] += valor
+                    resumo_lotes[lote_nome]['total_bruto'] += valor_lote
+                    resumo_lotes[lote_nome]['total_desconto'] += desconto
+                    resumo_lotes[lote_nome]['total_liquido'] += valor_final
                 else:
                     resumo_lotes[lote_nome] = {
                         'quantidade': 1,
-                        'total': valor
+                        'total_bruto': valor_lote,
+                        'total_desconto': desconto,
+                        'total_liquido': valor_final
                     }
 
         lucro_calculado = total_recebido - (baile.gasto or 0)
@@ -1590,6 +1599,7 @@ class BaileAvulsoDetailView(TemplateView):
             "baile": baile,
             "page_obj": page_obj,
             "total_lotes": total_recebido,
+            "total_descontos": total_descontos,
             "lucro": lucro_calculado,
             "q": query,
             "resumo_lotes": resumo_lotes,
@@ -1640,13 +1650,21 @@ class ParticipanteBaileFormView(View):
 
     def get(self, request, baile_id=None, participante_id=None):
         baile = get_object_or_404(BaileAvulso, id=baile_id)
-        form = self.form_class(initial={'baile': baile})
-        titulo = "Novo Participante"
+        
+        # Para novo participante, não passe initial com baile pois pode causar conflitos
         if participante_id:
             participante = get_object_or_404(ParticipanteBaile, id=participante_id)
             form = self.form_class(instance=participante)
             titulo = "Editar Participante"
-        return render(request, self.template_name, {"form": form, "titulo": titulo, "baile": baile})
+        else:
+            form = self.form_class(initial={'baile': baile})
+            titulo = "Novo Participante"
+            
+        return render(request, self.template_name, {
+            "form": form, 
+            "titulo": titulo, 
+            "baile": baile
+        })
 
     def post(self, request, baile_id=None, participante_id=None):
         baile = get_object_or_404(BaileAvulso, id=baile_id)
@@ -1657,6 +1675,7 @@ class ParticipanteBaileFormView(View):
         else:
             form = self.form_class(request.POST)
             msg = 'Participante adicionado com sucesso'
+            
         if form.is_valid():
             participante = form.save(commit=False)
             participante.baile = baile  # Preenche o baile aqui!
