@@ -396,7 +396,7 @@ class CamisaDeleteView(DeleteView):
 @method_decorator(never_cache, name="dispatch")
 class PedidoCamisaListView(ListView):
     model = PedidoCamisa
-    paginate_by = 10
+    paginate_by = 100
     template_name = "pedidos/list.html"
     ordering = ['-data_pedido']
 
@@ -1544,28 +1544,58 @@ class BaileAvulsoListView(ListView):
 @method_decorator(never_cache, name="dispatch")
 class BaileAvulsoDetailView(TemplateView):
     template_name = "baile_avulso/detail.html"
+    paginate_by = 50
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         baile = get_object_or_404(BaileAvulso, id=self.kwargs['baile_id'])
-        participantes = (
-            ParticipanteBaile.objects.filter(baile=baile)
-            .select_related('lote')
-        )
-        total = sum([
-            p.lote.valor_unitario
-            for p in participantes
-            if p.lote and p.lote.valor_unitario
-        ])
+        
+        # Filtro
+        query = self.request.GET.get('q', '')
+        participantes_queryset = ParticipanteBaile.objects.filter(baile=baile).select_related('lote')
+        
+        if query:
+            participantes_queryset = participantes_queryset.filter(
+                Q(nome__icontains=query) |
+                Q(lote__descricao__icontains=query)
+            )
+        
+        # Paginação
+        paginator = Paginator(participantes_queryset, self.paginate_by)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        # Cálculos totais e resumo por lote
+        total_recebido = 0
+        resumo_lotes = {}
+        
+        for participante in participantes_queryset:
+            if participante.lote:
+                lote_nome = participante.lote.descricao
+                valor = participante.lote.valor_unitario
+                total_recebido += valor
+                
+                if lote_nome in resumo_lotes:
+                    resumo_lotes[lote_nome]['quantidade'] += 1
+                    resumo_lotes[lote_nome]['total'] += valor
+                else:
+                    resumo_lotes[lote_nome] = {
+                        'quantidade': 1,
+                        'total': valor
+                    }
+
+        lucro_calculado = total_recebido - (baile.gasto or 0)
 
         context.update({
             "baile": baile,
-            "participantes": participantes,
-            "total_lotes": total,
-            "lucro": total - baile.gasto, 
+            "page_obj": page_obj,
+            "total_lotes": total_recebido,
+            "lucro": lucro_calculado,
+            "q": query,
+            "resumo_lotes": resumo_lotes,
+            "total_participantes": participantes_queryset.count(),
         })
         return context
-@method_decorator(never_cache, name="dispatch")
 class BaileAvulsoFormView(View):
     form_class = BaileAvulsoForm
     template_name = "baile_avulso/form.html"

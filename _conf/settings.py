@@ -91,6 +91,8 @@ INSTALLED_APPS = [
     "danca",
 ]
 
+DEBUG=True
+
 AUTH_USER_MODEL = "_core.User"
 
 AUTHENTICATION_BACKENDS = [
