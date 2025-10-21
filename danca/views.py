@@ -602,6 +602,18 @@ class InscricaoListView(ListView):
 
         content_type = ContentType.objects.get_for_model(Inscricao)
 
+        inscricoes = Inscricao.objects.all()
+
+        # Aplicar filtros básicos primeiro
+        if filtro:
+            inscricoes = inscricoes.filter(nome__icontains=filtro)
+            
+        if uf_filter:
+            inscricoes = inscricoes.filter(uf=uf_filter)
+        
+        if categoria_filter:
+            inscricoes = inscricoes.filter(categoria_id=categoria_filter)
+
         inscricoes = Inscricao.objects.annotate(
             valor_pago_db=Coalesce(
                 Subquery(
@@ -675,6 +687,9 @@ class InscricaoListView(ListView):
                 inscricoes = inscricoes.filter(valor_pago_db__gt=0, valor_restante_db__gt=0)  # Alterado
             elif status_filter == 'pendente':
                 inscricoes = inscricoes.filter(valor_pago_db=0)
+        
+        # Armazenar o queryset filtrado para uso no contexto
+        self.queryset_filtrado = inscricoes
                     
         # Mapa de ordenações permitidas
         ordering_map = {
@@ -704,13 +719,16 @@ class InscricaoListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        queryset = self.get_queryset()
+        queryset_completo = self.get_queryset()
+
+        # DEBUG: Verificar o contexto
+        print(f"DEBUG CONTEXT: Total inscrições filtradas: {queryset_completo.count()}")
+        print(f"DEBUG CONTEXT: Total geral: {Inscricao.objects.count()}")
         
         # Cálculo dos totais (mantido do seu código original)
-        total_pago = sum(inscricao.valor_pago for inscricao in queryset)
-        total_total = queryset.aggregate(total=Sum('valor_total'))['total'] or 0
+        total_pago = sum(inscricao.valor_pago_db for inscricao in queryset_completo)
+        total_total = queryset_completo.aggregate(total=Sum('valor_total'))['total'] or 0
         total_a_receber = total_total - total_pago
-
             # Busca as UFs existentes
         ufs_existentes = Inscricao.objects.order_by('uf').values_list('uf', flat=True).distinct()
         UFS_BRASIL = [...]  # Sua lista de UFs

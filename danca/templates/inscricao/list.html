@@ -11,10 +11,19 @@
 <h2 class="pb-2">{{ titulo }}</h2>
 <h2 class="pb-2">Inscrições</h2>
 
-<!-- Total de Inscrições -->
+<!-- Total de Inscrições - VERSÃO SIMPLIFICADA PARA DEBUG -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <span class="text-muted">Total de Inscrições: <strong>{{ total_inscricoes }}</strong></span>
+  <span class="text-muted">
+    <!-- DEBUG: Mostrar valores brutos -->
+    Total de Inscrições Gerais <strong id="debug-total">{{ total_inscricoes }}</strong>
+    <small class="text-muted ms-2">
+      {% comment %} (<span id="debug-geral">{{ total_inscricoes_geral }}</span> ) {% endcomment %}
+    </small>
+    <br>
+    <small class="text-info">Mostrando {{ page_obj|length }} registros na página atual</small>
+  </span>
 </div>
+
 
 {% if messages %}
 <div class="container">
