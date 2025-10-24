@@ -50,10 +50,17 @@
     Total a Receber: {{ total_a_receber|format_currency }}
   </small>
 </div>
-<a href="{% url 'inscricao_relatorio_docx' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
+{% comment %} <a href="{% url 'inscricao_relatorio_docx' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
   Baixar Relatório (.docx)
-</a>
-
+</a> {% endcomment %}
+<div class="d-flex gap-2 mb-3">
+  <a href="{% url 'inscricao_relatorio_preview' %}?{{ request.GET.urlencode }}" class="btn btn-primary">
+    <i class="bi bi-eye"></i> Pré-visualizar Relatório
+  </a>
+  <a href="{% url 'inscricao_relatorio_docx' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary">
+    <i class="bi bi-download"></i> Download Direto
+  </a>
+</div>
 <!-- Filtros Duplos - Adicione esta seção -->
 <div class="d-flex justify-content-end mb-3 gap-2 flex-wrap">
    <!-- Filtro por Categoria -->

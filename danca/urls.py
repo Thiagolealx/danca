@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from .views import *
+from .relatorios import InscricaoRelatorioPreviewView, InscricaoRelatorioDocxView
 
 urlpatterns = [
     #Lotes
@@ -112,7 +113,10 @@ urlpatterns = [
     path('relatorio/planejamento/', PlanejamentoRelatorioDocxView.as_view(), name='relatorio_planejamento'),
     path('relatorio/pedidos/', PedidosSimplesRelatorioDocxView.as_view(), name='relatorio_pedidos'),
     path('relatorio/caixa/', CaixaCompletoRelatorioDocxView.as_view(), name='relatorio_caixa'),
-
+    path('inscricoes/relatorio/preview/', InscricaoRelatorioPreviewView.as_view(), name='inscricao_relatorio_preview'),
+  
+    
+    # Bailes Avulsos
     path('bailes-avulsos/', BaileAvulsoListView.as_view(), name='list_baile_avulso'),
     path('bailes-avulsos/novo/', BaileAvulsoFormView.as_view(), name='create_baile_avulso'),
     path('bailes-avulsos/<int:baile_id>/', BaileAvulsoDetailView.as_view(), name='detail_baile_avulso'),

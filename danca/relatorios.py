@@ -651,3 +651,50 @@ class RelatorioBaileView(View):
         document.save(response)
         
         return response
+
+from django.shortcuts import render
+from django.utils.timezone import now
+from collections import Counter
+
+class InscricaoRelatorioPreviewView(InscricaoListView):
+    """ Pré-visualização do relatório antes de baixar """
+    template_name = 'inscricao/inscricao_relatorio_preview.html'
+    
+    def get(self, request, *args, **kwargs):
+        # Remove a paginação para pegar todos os registros
+        self.paginate_by = None
+        queryset = self.get_queryset()
+        
+        # Prepara os dados para a pré-visualização
+        dados_relatorio = []
+        uf_counter = Counter()
+        
+        for inscricao in queryset:
+            categoria = inscricao.categoria.descricao if inscricao.categoria else 'Sem categoria'
+            if inscricao.valor_restante_db <= 0:
+                status = 'Pago'
+            elif inscricao.valor_pago_db > 0:
+                status = 'Parcial'
+            else:
+                status = 'Pendente'
+            
+            uf = getattr(inscricao, 'uf', 'Não informado') or 'Não informado'
+            uf_counter[uf] += 1
+            
+            dados_relatorio.append({
+                'nome': inscricao.nome,
+                'cpf': inscricao.cpf,
+                'categoria': categoria,
+                'status': status,
+                'uf': uf,
+            })
+        
+        context = {
+            'dados_relatorio': dados_relatorio,
+            'total_inscricoes': queryset.count(),
+            'data_geracao': now().strftime("%d/%m/%Y %H:%M"),
+            'resumo_uf': sorted(uf_counter.items()),
+            'filtros_ativos': request.GET.urlencode(),
+        }
+        
+        return render(request, self.template_name, context)
