@@ -19,25 +19,46 @@ from django.template.loader import render_to_string
 from .views import InscricaoListView
 from collections import Counter
 
-
 class InscricaoRelatorioDocxView(InscricaoListView):
-    """ Gera relatório .docx como lista enumerada """
+    """ Gera relatório .docx com tabelas organizadas """
+    
     def get(self, request, *args, **kwargs):
         # Remove a paginação para pegar todos os registros
         self.paginate_by = None
         queryset = self.get_queryset()
 
         document = Document()
+        
+        # Cabeçalho
         document.add_heading('Relatório de Inscrições', 0)
-        document.add_paragraph(f'Gerado em: {now().strftime("%d/%m/%Y %H:%M")}')
-        document.add_paragraph(f'Total de inscrições: {queryset.count()}')
-        document.add_paragraph('')
-
-        # Contador para UF
+        
+        # Informações gerais
+        info_paragraph = document.add_paragraph()
+        info_paragraph.add_run('Gerado em: ').bold = True
+        info_paragraph.add_run(now().strftime("%d/%m/%Y %H:%M"))
+        
+        info_paragraph = document.add_paragraph()
+        info_paragraph.add_run('Total de inscrições: ').bold = True
+        info_paragraph.add_run(str(queryset.count()))
+        
+        document.add_paragraph()
+        
+        # Contadores
         uf_counter = Counter()
+        status_counter = Counter()
+        categoria_counter = Counter()
 
+        # Função para tratar valores nulos
+        def safe_str(value):
+            if value is None:
+                return "Não informado"
+            return str(value)
+
+        # Dados para tabela principal
+        inscricoes_data = []
         for inscricao in queryset:
-            categoria = inscricao.categoria.descricao if inscricao.categoria else 'Sem categoria'
+            categoria = safe_str(inscricao.categoria.descricao if inscricao.categoria else 'Sem categoria')
+            
             if inscricao.valor_restante_db <= 0:
                 status = 'Pago'
             elif inscricao.valor_pago_db > 0:
@@ -45,31 +66,106 @@ class InscricaoRelatorioDocxView(InscricaoListView):
             else:
                 status = 'Pendente'
             
-            # Adiciona a UF (assumindo que o campo se chama 'uf')
-            uf = getattr(inscricao, 'uf', 'Não informado') or 'Não informado'
+            uf = safe_str(getattr(inscricao, 'uf', 'Não informado'))
             
-            # Contabiliza a UF
+            # Atualizar contadores
             uf_counter[uf] += 1
+            status_counter[status] += 1
+            categoria_counter[categoria] += 1
             
-            document.add_paragraph(
-                f'{inscricao.nome} — {inscricao.cpf} — {categoria} — {status} — UF: {uf}',
-                style='List Number'
-            )
+            inscricoes_data.append({
+                'nome': safe_str(inscricao.nome),
+                'cpf': safe_str(inscricao.cpf),
+                'categoria': categoria,
+                'status': status,
+                'uf': uf
+            })
 
-        # Adiciona seção com contagem por UF
-        document.add_paragraph('')
+        # Tabela principal de inscrições
+        document.add_heading('Lista de Inscrições', level=1)
+        
+        if inscricoes_data:
+            table = document.add_table(rows=1, cols=5)
+            table.style = 'Light Grid Accent 1'
+            
+            # Cabeçalho
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = '#'
+            hdr_cells[1].text = 'Nome'
+            hdr_cells[2].text = 'CPF'
+            hdr_cells[3].text = 'Categoria'
+            hdr_cells[4].text = 'Status/UF'
+            
+            # Dados
+            for i, inscricao in enumerate(inscricoes_data, 1):
+                row_cells = table.add_row().cells
+                row_cells[0].text = safe_str(i)
+                row_cells[1].text = inscricao['nome']
+                row_cells[2].text = inscricao['cpf']
+                row_cells[3].text = inscricao['categoria']
+                row_cells[4].text = f"{inscricao['status']} - {inscricao['uf']}"
+
+        document.add_paragraph()
+
+        # Resumo por Status
+        document.add_heading('Resumo por Status', level=1)
+        
+        if status_counter:
+            status_table = document.add_table(rows=1, cols=2)
+            status_table.style = 'Light Grid Accent 1'
+            
+            hdr_cells = status_table.rows[0].cells
+            hdr_cells[0].text = 'Status'
+            hdr_cells[1].text = 'Quantidade'
+            
+            for status, quantidade in sorted(status_counter.items()):
+                row_cells = status_table.add_row().cells
+                row_cells[0].text = safe_str(status)
+                row_cells[1].text = safe_str(quantidade)
+
+        document.add_paragraph()
+
+        # Resumo por UF
         document.add_heading('Resumo por UF', level=1)
         
-        for uf, quantidade in sorted(uf_counter.items()):
-            document.add_paragraph(f'{uf}: {quantidade} inscrição(s)')
+        if uf_counter:
+            uf_table = document.add_table(rows=1, cols=2)
+            uf_table.style = 'Light Grid Accent 1'
+            
+            hdr_cells = uf_table.rows[0].cells
+            hdr_cells[0].text = 'UF'
+            hdr_cells[1].text = 'Quantidade'
+            
+            for uf, quantidade in sorted(uf_counter.items()):
+                row_cells = uf_table.add_row().cells
+                row_cells[0].text = safe_str(uf)
+                row_cells[1].text = safe_str(quantidade)
 
+        document.add_paragraph()
+
+        # Resumo por Categoria
+        document.add_heading('Resumo por Categoria', level=1)
+        
+        if categoria_counter:
+            cat_table = document.add_table(rows=1, cols=2)
+            cat_table.style = 'Light Grid Accent 1'
+            
+            hdr_cells = cat_table.rows[0].cells
+            hdr_cells[0].text = 'Categoria'
+            hdr_cells[1].text = 'Quantidade'
+            
+            for categoria, quantidade in sorted(categoria_counter.items()):
+                row_cells = cat_table.add_row().cells
+                row_cells[0].text = safe_str(categoria)
+                row_cells[1].text = safe_str(quantidade)
+
+        # Preparar resposta
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
         response['Content-Disposition'] = 'attachment; filename="relatorio_inscricoes.docx"'
         document.save(response)
         return response
-
 
 def evento_inscritos_docx(request, pk):
     evento = get_object_or_404(Evento, pk=pk)
